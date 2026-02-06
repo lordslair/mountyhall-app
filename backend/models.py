@@ -38,3 +38,30 @@ class User(db.Model):
             'sciz_token': self.sciz_token,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+
+class Monster(db.Model):
+    """Monster model for storing user's monsters."""
+    __tablename__ = 'monsters'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    mob_id = db.Column(db.String(50), nullable=False)
+    mob_name_full = db.Column(db.String(255), nullable=True)
+    mob_json = db.Column(db.Text, nullable=True)  # JSON data from MZ API stored as text
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationship to User
+    user = db.relationship('User', backref=db.backref('monsters', lazy=True))
+    
+    def to_dict(self):
+        """Convert monster to dictionary for JSON serialization."""
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'mob_id': self.mob_id,
+            'mob_name_full': self.mob_name_full,
+            'mob_json': self.mob_json,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }

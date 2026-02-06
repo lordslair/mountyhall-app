@@ -141,6 +141,26 @@ export const api = {
       method: 'GET',
     });
   },
+
+  // Monsters
+  searchMonster: async (mob_id) => {
+    return apiRequest('/monsters/search', {
+      method: 'POST',
+      body: JSON.stringify({ mob_id }),
+    });
+  },
+
+  fetchMZData: async (mob_id) => {
+    return apiRequest(`/monsters/${mob_id}/mz`, {
+      method: 'POST',
+    });
+  },
+
+  getMonsters: async () => {
+    return apiRequest('/monsters', {
+      method: 'GET',
+    });
+  },
 };
 
 export { getToken, setToken, removeToken };

@@ -8,6 +8,7 @@ import logging
 from database import init_db
 from auth import auth_bp
 from group import group_bp
+from monsters import monsters_bp
 
 # Load environment variables
 load_dotenv()
@@ -55,6 +56,7 @@ def create_app():
     # Register blueprints
     app.register_blueprint(auth_bp)
     app.register_blueprint(group_bp)
+    app.register_blueprint(monsters_bp)
     
     # Add after_request handler to ALWAYS set CORS headers
     # This ensures headers are present even if Flask-CORS misses them
