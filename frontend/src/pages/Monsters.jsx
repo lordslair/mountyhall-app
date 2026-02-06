@@ -282,14 +282,26 @@ const Monsters = () => {
             className="search-input"
             disabled={searching}
           />
-          <button
-            onClick={handleSearch}
-            className="btn btn-primary"
-            disabled={searching}
-            style={{ marginLeft: '0.5rem', width: 'auto', minWidth: '150px' }}
+          <button 
+            onClick={handleSearch} 
+            className="btn-search-icon"
+            aria-label="Search"
+            title="Search"
           >
-            {searching ? 'Recherche...' : 'Recherche Monstre'}
-          </button>
+            <svg 
+              width="20" 
+              height="20" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </button>  
         </div>
         {error && <div className="error-message" style={{ marginTop: '1rem' }}>{error}</div>}
       </div>
@@ -305,36 +317,36 @@ const Monsters = () => {
           
           {/* DESKTOP TABLE (Hidden on mobile) */}
           <div className="table-view">
-          <table className="group-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nom</th>
-                <th>Niv.</th>
+            <table className="group-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nom</th>
+                  <th>Niv.</th>
                   <th>PV</th>
                   <th>ESQ</th>
                   <th>ArmP</th>
                   <th>ArmM</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {monsters.map((monster) => (
-                <tr key={monster.id}>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monsters.map((monster) => (
+                  <tr key={monster.id}>
                     <td><span className={getNameBoxClass(monster)}>{monster.mob_id}</span></td>
                     <td>{monster.mob_name_full}</td>
-                  <td>{getLevelDisplay(monster)}</td>
+                    <td>{getLevelDisplay(monster)}</td>
                     <td>{getPVDisplay(monster)}</td>
                     <td>{getESQDisplay(monster)}</td>
                     <td>{getArmPDisplay(monster)}</td>
                     <td>{getArmMDisplay(monster)}</td>
-                  <td>
+                    <td>
                       <button onClick={() => handleFetchMZ(monster.mob_id)} className="btn btn-secondary">🔎 MZ</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
           {/* MOBILE CARDS (Hidden on desktop) */}
