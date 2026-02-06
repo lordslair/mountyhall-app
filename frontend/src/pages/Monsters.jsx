@@ -46,13 +46,13 @@ const Monsters = () => {
     const mobId = searchInput.trim();
     
     if (!mobId) {
-      setError('Please enter a monster ID');
+      setError('Entrez un ID de monstre');
       return;
     }
 
     // Validate numeric ID
     if (!/^\d+$/.test(mobId)) {
-      setError('Monster ID must be numeric');
+      setError('L\'ID de monstre doit être numérique');
       return;
     }
 
@@ -126,6 +126,122 @@ const Monsters = () => {
     return `${min} - ${max}`;
   };
 
+  const getPVDisplay = (monster) => {
+    if (!monster.mob_json || typeof monster.mob_json !== 'object') {
+      return '-';
+    }
+    
+    const pv = monster.mob_json.pv;
+    const bless = monster.mob_json.bless;
+    
+    if (!pv) {
+      return '-';
+    }
+    
+    const pvMin = pv.min;
+    const pvMax = pv.max;
+    
+    if (bless > 0) {
+      const calculatedMin = Math.round(pvMin * bless / 100);
+      const calculatedMax = Math.round(pvMax * bless / 100);
+      return `~ ${calculatedMin} - ${calculatedMax}`;
+    } else {
+      if (pvMin === pvMax) {
+        return String(pvMin);
+      }
+      return `${pvMin} - ${pvMax}`;
+    }
+  };
+
+  const getESQDisplay = (monster) => {
+    if (!monster.mob_json || typeof monster.mob_json !== 'object') {
+      return '-';
+    }
+    
+    const esq = monster.mob_json.esq;
+    if (!esq) {
+      return '-';
+    }
+    
+    const min = esq.min;
+    const max = esq.max;
+    
+    if (min === max) {
+      return String(min);
+    }
+    
+    return `${min} - ${max}`;
+  };
+
+  const getArmPDisplay = (monster) => {
+    if (!monster.mob_json || typeof monster.mob_json !== 'object') {
+      return '-';
+    }
+    
+    const arm = monster.mob_json.arm;
+    if (!arm) {
+      return '-';
+    }
+    
+    const min = arm.min;
+    const max = arm.max;
+    
+    if (min === max) {
+      return String(min);
+    }
+    
+    return `${min} - ${max}`;
+  };
+
+  const getArmMDisplay = (monster) => {
+    if (!monster.mob_json || typeof monster.mob_json !== 'object') {
+      return '-';
+    }
+    
+    const armM = monster.mob_json.armM;
+    if (!armM) {
+      return '-';
+    }
+    
+    const min = armM.min;
+    const max = armM.max;
+    
+    if (min === max) {
+      return String(min);
+    }
+    
+    return `${min} - ${max}`;
+  };
+
+  const getNameBoxClass = (monster) => {
+    if (!monster.mob_json || typeof monster.mob_json !== 'object') {
+      return 'name-box-gray';
+    }
+    
+    const mode = monster.mob_json.Mode;
+    const bless = monster.mob_json.bless;
+    
+    // First check: if Mode is 'stat', return gray
+    if (mode === 'stat') {
+      return 'name-box-gray';
+    }
+    
+    // Otherwise, check bless value
+    if (bless == null || bless === undefined) {
+      return 'name-box-gray';
+    }
+    
+    if (bless < 20) {
+      return 'name-box-green';
+    } else if (bless >= 20 && bless < 80) {
+      return 'name-box-yellow';
+    } else if (bless >= 80) {
+      return 'name-box-red';
+    }
+    
+    return 'name-box-gray';
+  };
+
   const handleCloseNotification = () => {
     setNotification({ show: false, type: '', message: '' });
   };
@@ -179,40 +295,82 @@ const Monsters = () => {
       </div>
 
       {/* Monsters Table */}
+      {/* Monsters Content */}
       {monsters.length === 0 ? (
         <div style={{ marginTop: '2rem', textAlign: 'center', color: '#666' }}>
-          <p>Aucun monstre trouvé. Utilisez le champ de recherche ci-dessus pour ajouter un monstre.</p>
+          <p>Aucun monstre trouvé.</p>
         </div>
       ) : (
-        <div className="table-container" style={{ marginTop: '2rem' }}>
+        <div className="monsters-container" style={{ marginTop: '2rem' }}>
+          
+          {/* DESKTOP TABLE (Hidden on mobile) */}
+          <div className="table-view">
           <table className="group-table">
             <thead>
               <tr>
                 <th>ID</th>
                 <th>Nom</th>
                 <th>Niv.</th>
+                  <th>PV</th>
+                  <th>ESQ</th>
+                  <th>ArmP</th>
+                  <th>ArmM</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
               {monsters.map((monster) => (
                 <tr key={monster.id}>
-                  <td>{monster.mob_id}</td>
-                  <td>{monster.mob_name_full || '-'}</td>
+                    <td><span className={getNameBoxClass(monster)}>{monster.mob_id}</span></td>
+                    <td>{monster.mob_name_full}</td>
                   <td>{getLevelDisplay(monster)}</td>
+                    <td>{getPVDisplay(monster)}</td>
+                    <td>{getESQDisplay(monster)}</td>
+                    <td>{getArmPDisplay(monster)}</td>
+                    <td>{getArmMDisplay(monster)}</td>
                   <td>
-                    <button
-                      onClick={() => handleFetchMZ(monster.mob_id)}
-                      className="btn btn-secondary"
-                      style={{ width: 'auto', minWidth: '120px', padding: '0.5rem 1rem' }}
-                    >
-                      Recherche MZ
-                    </button>
+                      <button onClick={() => handleFetchMZ(monster.mob_id)} className="btn btn-secondary">🔎 MZ</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
+
+          {/* MOBILE CARDS (Hidden on desktop) */}
+          <div className="cards-view">
+            {monsters.map((monster) => (
+              <div key={monster.id} className="monster-card">
+                <div className="card-header">
+                  <span className={getNameBoxClass(monster)}>{monster.mob_id}</span>
+                  <span className="monster-name">{monster.mob_name_full}</span>
+                </div>
+                
+                <div className="card-body">
+                  <div className="stat-row">
+                    <span><strong>Niveau:</strong> {getLevelDisplay(monster)}</span>
+                    <span><strong>PV:</strong> {getPVDisplay(monster)}</span>
+                  </div>
+                  <div className="stat-row">
+                    <span><strong>ESQ:</strong> {getESQDisplay(monster)}</span>
+                    <span><strong>ArmP:</strong> {getArmPDisplay(monster)}</span>
+                  </div>
+                  <div className="stat-row">
+                    <span><strong>ArmM:</strong> {getArmMDisplay(monster)}</span>
+                  </div>
+                </div>
+
+                <div className="card-footer">
+                  <button
+                    onClick={() => handleFetchMZ(monster.mob_id)}
+                    className="btn btn-secondary btn-full"
+                  >
+                    🔎 MZ Data
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

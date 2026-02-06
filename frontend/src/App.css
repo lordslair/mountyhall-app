@@ -525,7 +525,10 @@
 .group-table {
   width: 100%;
   border-collapse: collapse;
+  background-color: #ffffff;
+  border-radius: 8px;
   min-width: 600px;
+  overflow: hidden; /* Keeps the radius if you have a border */
 }
 
 .group-table thead {
@@ -795,5 +798,65 @@ html {
   .search-input {
     flex: 0 1 auto;
     min-width: 300px;
+  }
+}
+
+
+/* 1. Default: Hide the mobile cards on desktop */
+.cards-view {
+  display: none;
+}
+
+/* 2. Style the cards */
+.monster-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.8rem;
+  margin-bottom: 0.8rem;
+}
+
+.monster-name {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.card-footer {
+  margin-top: 1rem;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+/* 3. Media Query for Mobile (below 768px) */
+@media (max-width: 768px) {
+  .table-view {
+    display: none; /* Hide the table */
+  }
+  
+  .cards-view {
+    display: block; /* Show the cards */
+  }
+
+  .group-page {
+    padding: 10px; /* Give more room on the edges */
   }
 }
