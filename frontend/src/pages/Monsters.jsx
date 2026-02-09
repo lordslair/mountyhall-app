@@ -440,18 +440,12 @@ const Monsters = () => {
               </thead>
               <tbody>
                 {monsters.map((monster) => {
-                  const timegmtTooltip = formatTimegmt(monster);
                   return (
                     <tr key={monster.id}>
                       <td><span className={getNameBoxClass(monster)}>{monster.mob_id}</span></td>
                       <td>{monster.mob_name_full}</td>
                       <td>{getLevelDisplay(monster)}</td>
-                      <td 
-                        className={timegmtTooltip ? 'pv-cell-with-tooltip' : ''}
-                        title={timegmtTooltip || undefined}
-                      >
-                        {getPVDisplay(monster)}
-                      </td>
+                      <td>{getPVDisplay(monster)}</td>
                       <td>{getESQDisplay(monster)}</td>
                       <td>{getArmPDisplay(monster)}</td>
                       <td>{getArmMDisplay(monster)}</td>
@@ -503,11 +497,23 @@ const Monsters = () => {
                   <div className="card-body">
                     <div className="stat-row">
                       <span><strong>Niveau:</strong> {getLevelDisplay(monster)}</span>
+                      
                       <span 
-                        className={timegmtTooltip ? 'pv-cell-with-tooltip' : ''}
-                        title={timegmtTooltip || undefined}
+                        className={timegmtTooltip ? 'pv-card-tooltip-trigger' : ''}
+                        data-tooltip={timegmtTooltip || undefined}
+                        tabIndex="0" // This allows the element to hold 'focus' after a tap
                       >
                         <strong>PV:</strong> {getPVDisplay(monster)}
+                        {timegmtTooltip && (
+                          <svg 
+                            className="info-icon-mobile"
+                            width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                          >
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                          </svg>
+                        )}
                       </span>
                     </div>
                     <div className="stat-row">
