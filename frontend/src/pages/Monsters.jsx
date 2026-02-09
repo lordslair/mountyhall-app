@@ -183,7 +183,7 @@ const Monsters = () => {
       return '-';
     }
     
-    const min = arm.min;
+    const min = arm.min || 1;
     const max = arm.max;
     
     if (min === max) {
@@ -203,7 +203,7 @@ const Monsters = () => {
       return '-';
     }
     
-    const min = armM.min;
+    const min = armM.min || 1;
     const max = armM.max;
     
     if (min === max) {
@@ -446,7 +446,7 @@ const Monsters = () => {
                       <td>{monster.mob_name_full}</td>
                       <td>{getLevelDisplay(monster)}</td>
                       <td>{getPVDisplay(monster)}</td>
-                      <td>{getESQDisplay(monster)}</td>
+                      <td>{getESQDisplay(monster)} <b>D6</b></td>
                       <td>{getArmPDisplay(monster)}</td>
                       <td>{getArmMDisplay(monster)}</td>
                       <td>
@@ -517,7 +517,7 @@ const Monsters = () => {
                       </span>
                     </div>
                     <div className="stat-row">
-                      <span><strong>ESQ:</strong> {getESQDisplay(monster)}</span>
+                      <span><strong>ESQ:</strong> {getESQDisplay(monster)} <b>D6</b></span>
                       <span><strong>ArmP:</strong> {getArmPDisplay(monster)}</span>
                     </div>
                     <div className="stat-row">
