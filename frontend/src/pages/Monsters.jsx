@@ -439,8 +439,7 @@ const Monsters = () => {
                   <th>Niv.</th>
                   <th>PV</th>
                   <th>ESQ</th>
-                  <th>ArmP</th>
-                  <th>ArmM</th>
+                  <th>Arm.</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -453,8 +452,7 @@ const Monsters = () => {
                       <td>{getLevelDisplay(monster)}</td>
                       <td>{getPVDisplay(monster)}</td>
                       <td>{getESQDisplay(monster)} <b>D6</b></td>
-                      <td>{getArmPDisplay(monster)}</td>
-                      <td>{getArmMDisplay(monster)}</td>
+                      <td>{getArmPDisplay(monster)} (<b>P</b>)| {getArmMDisplay(monster)} (<b>M</b>)</td>
                       <td>
                         <div className="action-buttons">
                           <button onClick={() => handleFetchMZ(monster.mob_id)} className="btn btn-secondary">🔎 MZ</button>
@@ -524,10 +522,9 @@ const Monsters = () => {
                     </div>
                     <div className="stat-row">
                       <span><strong>ESQ:</strong> {getESQDisplay(monster)} <b>D6</b></span>
-                      <span><strong>ArmP:</strong> {getArmPDisplay(monster)}</span>
                     </div>
                     <div className="stat-row">
-                      <span><strong>ArmM:</strong> {getArmMDisplay(monster)}</span>
+                      <span><strong>Arm:</strong> {getArmPDisplay(monster)} (<b>P</b>) | {getArmMDisplay(monster)} (<b>M</b>)</span>
                     </div>
                   </div>
 
