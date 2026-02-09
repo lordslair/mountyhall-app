@@ -161,6 +161,18 @@ export const api = {
       method: 'GET',
     });
   },
+
+  deleteMonster: async (mob_id) => {
+    return apiRequest(`/monsters/${mob_id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  purgeMonsters: async () => {
+    return apiRequest('/monsters', {
+      method: 'DELETE',
+    });
+  },
 };
 
 export { getToken, setToken, removeToken };

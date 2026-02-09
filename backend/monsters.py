@@ -213,3 +213,67 @@ def get_monsters():
     except Exception as e:
         logger.error(f"Error retrieving monsters: {str(e)}", exc_info=True)
         return jsonify({'error': 'Failed to retrieve monsters', 'details': str(e)}), 500
+
+@monsters_bp.route('/<mob_id>', methods=['DELETE'])
+@jwt_required()
+def delete_monster(mob_id):
+    """Delete a single monster for the current user."""
+    try:
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Get monster record for this user
+        monster = Monster.query.filter_by(user_id=user_id, mob_id=mob_id).first()
+        
+        if not monster:
+            return jsonify({'error': 'Monster not found'}), 404
+        
+        # Delete the monster
+        db.session.delete(monster)
+        db.session.commit()
+        
+        logger.info(f"Deleted monster mob_id={mob_id} for user_id={user_id}")
+        return jsonify({
+            'message': 'Monster deleted successfully',
+            'mob_id': mob_id
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting monster: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Failed to delete monster', 'details': str(e)}), 500
+
+@monsters_bp.route('', methods=['DELETE'])
+@jwt_required()
+def purge_monsters():
+    """Delete all monsters for the current user."""
+    try:
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Get all monsters for this user
+        monsters = Monster.query.filter_by(user_id=user_id).all()
+        count = len(monsters)
+        
+        # Delete all monsters
+        for monster in monsters:
+            db.session.delete(monster)
+        
+        db.session.commit()
+        
+        logger.info(f"Purged {count} monsters for user_id={user_id}")
+        return jsonify({
+            'message': f'Successfully deleted {count} monster(s)',
+            'count': count
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error purging monsters: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Failed to purge monsters', 'details': str(e)}), 500

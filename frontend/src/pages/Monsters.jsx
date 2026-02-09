@@ -246,6 +246,106 @@ const Monsters = () => {
     setNotification({ show: false, type: '', message: '' });
   };
 
+  const handlePurge = async () => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer tous les monstres ? Cette action est irréversible.')) {
+      return;
+    }
+
+    try {
+      setError('');
+      const response = await api.purgeMonsters();
+      
+      // Refresh the monsters list
+      await fetchMonsters();
+      
+      // Show success notification
+      setNotification({
+        show: true,
+        type: 'success',
+        message: `Tous les monstres ont été supprimés (${response.count || 0} monstre(s))`
+      });
+    } catch (err) {
+      setNotification({
+        show: true,
+        type: 'error',
+        message: err.message || 'Échec de la suppression des monstres'
+      });
+    }
+  };
+
+  const handleDeleteMonster = async (mobId) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce monstre ?')) {
+      return;
+    }
+
+    try {
+      setError('');
+      // Optimistic update - remove from UI immediately
+      setMonsters(prevMonsters => prevMonsters.filter(m => m.mob_id !== mobId));
+      
+      await api.deleteMonster(mobId);
+      
+      // Show success notification
+      setNotification({
+        show: true,
+        type: 'success',
+        message: 'Monstre supprimé avec succès'
+      });
+    } catch (err) {
+      // Revert optimistic update on error
+      await fetchMonsters();
+      setNotification({
+        show: true,
+        type: 'error',
+        message: err.message || 'Échec de la suppression du monstre'
+      });
+    }
+  };
+
+  const formatTimegmt = (monster) => {
+    if (!monster.mob_json || typeof monster.mob_json !== 'object') {
+      return null;
+    }
+    
+    const timegmt = monster.mob_json.timegmt;
+    if (!timegmt) {
+      return null;
+    }
+    
+    try {
+      // Try parsing as Unix timestamp (seconds)
+      let date;
+      if (typeof timegmt === 'number') {
+        // If it's a number, check if it's seconds or milliseconds
+        date = timegmt < 10000000000 ? new Date(timegmt * 1000) : new Date(timegmt);
+      } else if (typeof timegmt === 'string') {
+        // Try parsing as number first
+        const num = parseInt(timegmt, 10);
+        if (!isNaN(num)) {
+          date = num < 10000000000 ? new Date(num * 1000) : new Date(num);
+        } else {
+          // Try parsing as ISO string
+          date = new Date(timegmt);
+        }
+      } else {
+        return null;
+      }
+      
+      if (isNaN(date.getTime())) {
+        return null;
+      }
+      
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      
+      return `@ ${day}/${month} ${hours}:${minutes}`;
+    } catch (e) {
+      return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="group-page">
@@ -301,7 +401,15 @@ const Monsters = () => {
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-          </button>  
+          </button>
+          <button 
+            onClick={handlePurge} 
+            className="btn-trash"
+            aria-label="Purge"
+            title="Supprimer tous les monstres"
+          >
+            Purge
+          </button>
         </div>
         {error && <div className="error-message" style={{ marginTop: '1rem' }}>{error}</div>}
       </div>
@@ -331,57 +439,121 @@ const Monsters = () => {
                 </tr>
               </thead>
               <tbody>
-                {monsters.map((monster) => (
-                  <tr key={monster.id}>
-                    <td><span className={getNameBoxClass(monster)}>{monster.mob_id}</span></td>
-                    <td>{monster.mob_name_full}</td>
-                    <td>{getLevelDisplay(monster)}</td>
-                    <td>{getPVDisplay(monster)}</td>
-                    <td>{getESQDisplay(monster)}</td>
-                    <td>{getArmPDisplay(monster)}</td>
-                    <td>{getArmMDisplay(monster)}</td>
-                    <td>
-                      <button onClick={() => handleFetchMZ(monster.mob_id)} className="btn btn-secondary">🔎 MZ</button>
-                    </td>
-                  </tr>
-                ))}
+                {monsters.map((monster) => {
+                  const timegmtTooltip = formatTimegmt(monster);
+                  return (
+                    <tr key={monster.id}>
+                      <td><span className={getNameBoxClass(monster)}>{monster.mob_id}</span></td>
+                      <td>{monster.mob_name_full}</td>
+                      <td>{getLevelDisplay(monster)}</td>
+                      <td 
+                        className={timegmtTooltip ? 'pv-cell-with-tooltip' : ''}
+                        title={timegmtTooltip || undefined}
+                      >
+                        {getPVDisplay(monster)}
+                      </td>
+                      <td>{getESQDisplay(monster)}</td>
+                      <td>{getArmPDisplay(monster)}</td>
+                      <td>{getArmMDisplay(monster)}</td>
+                      <td>
+                        <div className="action-buttons">
+                          <button onClick={() => handleFetchMZ(monster.mob_id)} className="btn btn-secondary">🔎 MZ</button>
+                          <button 
+                            onClick={() => handleDeleteMonster(monster.mob_id)} 
+                            className="btn-trash"
+                            aria-label="Delete"
+                            title="Supprimer ce monstre"
+                          >
+                            <svg 
+                              width="16" 
+                              height="16" 
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              strokeWidth="2" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round"
+                            >
+                              <polyline points="3 6 5 6 21 6"></polyline>
+                              <path d="m19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                              <line x1="10" y1="11" x2="10" y2="17"></line>
+                              <line x1="14" y1="11" x2="14" y2="17"></line>
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
           {/* MOBILE CARDS (Hidden on desktop) */}
           <div className="cards-view">
-            {monsters.map((monster) => (
-              <div key={monster.id} className="monster-card">
-                <div className="card-header">
-                  <span className={getNameBoxClass(monster)}>{monster.mob_id}</span>
-                  <span className="monster-name">{monster.mob_name_full}</span>
-                </div>
-                
-                <div className="card-body">
-                  <div className="stat-row">
-                    <span><strong>Niveau:</strong> {getLevelDisplay(monster)}</span>
-                    <span><strong>PV:</strong> {getPVDisplay(monster)}</span>
+            {monsters.map((monster) => {
+              const timegmtTooltip = formatTimegmt(monster);
+              return (
+                <div key={monster.id} className="monster-card">
+                  <div className="card-header">
+                    <span className={getNameBoxClass(monster)}>{monster.mob_id}</span>
+                    <span className="monster-name">{monster.mob_name_full}</span>
                   </div>
-                  <div className="stat-row">
-                    <span><strong>ESQ:</strong> {getESQDisplay(monster)}</span>
-                    <span><strong>ArmP:</strong> {getArmPDisplay(monster)}</span>
+                  
+                  <div className="card-body">
+                    <div className="stat-row">
+                      <span><strong>Niveau:</strong> {getLevelDisplay(monster)}</span>
+                      <span 
+                        className={timegmtTooltip ? 'pv-cell-with-tooltip' : ''}
+                        title={timegmtTooltip || undefined}
+                      >
+                        <strong>PV:</strong> {getPVDisplay(monster)}
+                      </span>
+                    </div>
+                    <div className="stat-row">
+                      <span><strong>ESQ:</strong> {getESQDisplay(monster)}</span>
+                      <span><strong>ArmP:</strong> {getArmPDisplay(monster)}</span>
+                    </div>
+                    <div className="stat-row">
+                      <span><strong>ArmM:</strong> {getArmMDisplay(monster)}</span>
+                    </div>
                   </div>
-                  <div className="stat-row">
-                    <span><strong>ArmM:</strong> {getArmMDisplay(monster)}</span>
-                  </div>
-                </div>
 
-                <div className="card-footer">
-                  <button
-                    onClick={() => handleFetchMZ(monster.mob_id)}
-                    className="btn btn-secondary btn-full"
-                  >
-                    🔎 MZ Data
-                  </button>
+                  <div className="card-footer">
+                    <div className="card-action-buttons">
+                      <button
+                        onClick={() => handleFetchMZ(monster.mob_id)}
+                        className="btn btn-secondary"
+                      >
+                        🔎 MZ Data
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteMonster(monster.mob_id)} 
+                        className="btn-trash"
+                        aria-label="Delete"
+                        title="Supprimer ce monstre"
+                      >
+                        <svg 
+                          width="16" 
+                          height="16" 
+                          viewBox="0 0 24 24" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          strokeWidth="2" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="m19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          <line x1="10" y1="11" x2="10" y2="17"></line>
+                          <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
