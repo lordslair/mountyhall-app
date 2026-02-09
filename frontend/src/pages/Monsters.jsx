@@ -126,7 +126,11 @@ const Monsters = () => {
     return `${min} - ${max}`;
   };
 
-  const getPVDisplay = (monster) => {
+  /**
+   * @param {Object} monster - The monster data object
+   * @param {boolean} includeBless - Whether to apply the injury (bless) percentage
+   */
+  const getPVDisplay = (monster, includeBless = true) => {
     if (!monster.mob_json || typeof monster.mob_json !== 'object') {
       return '-';
     }
@@ -141,11 +145,13 @@ const Monsters = () => {
     const pvMin = pv.min;
     const pvMax = pv.max;
     
-    if (bless > 0) {
+    // Check both the parameter AND the existence of a bless value
+    if (includeBless && bless > 0) {
       const calculatedMin = Math.round(pvMin * bless / 100);
       const calculatedMax = Math.round(pvMax * bless / 100);
       return `~ ${calculatedMin} - ${calculatedMax}`;
     } else {
+      // Return standard stats if includeBless is false OR bless is 0/missing
       if (pvMin === pvMax) {
         return String(pvMin);
       }
@@ -340,7 +346,7 @@ const Monsters = () => {
       const hours = String(date.getHours()).padStart(2, '0');
       const minutes = String(date.getMinutes()).padStart(2, '0');
       
-      return `@ ${day}/${month} ${hours}:${minutes}`;
+      return `@ ${day}/${month} ${hours}:${minutes}\n Initial: ${getPVDisplay(monster, false)}`;
     } catch (e) {
       return null;
     }

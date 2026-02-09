@@ -962,12 +962,18 @@ html {
     border-radius: 4px;
     font-size: 12px;
     z-index: 99;
-    white-space: nowrap;
+    white-space: pre-wrap; /* Respects line breaks */
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.2s;
     pointer-events: none;
     box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+
+    /* Layout adjustments for multi-line */
+    min-width: 100px;      /* Prevents the box from being too skinny */
+    max-width: 150px;      /* Prevents the box from being too wide */
+    text-align: left;      /* Usually looks better for lists than 'center' */
+    line-height: 1.4;      /* Adds a little space between the lines */
   }
 
   /* The Tooltip Arrow */
