@@ -602,6 +602,15 @@
   border: 1px solid #dee2e6;
 }
 
+.name-box-purple {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background-color: #e2d5f1;
+  color: #5a3d7a;
+  border: 1px solid #c9b8e8;
+}
+
 .group-table tbody tr:hover {
   background-color: #f9f9f9;
 }

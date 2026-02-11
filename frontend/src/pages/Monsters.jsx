@@ -79,17 +79,21 @@ const Monsters = () => {
       const response = await api.fetchMZData(mobId);
       
       if (response.success) {
-        // Show success notification
-        setNotification({
-          show: true,
-          type: 'success',
-          message: 'Ce monstre a bien été trouvé dans MZ'
-        });
-        
-        // Refresh the monsters list to show updated data
+        if (response.dead) {
+          setNotification({
+            show: true,
+            type: 'success',
+            message: "Monstre marqué comme mort (n'existe pas ou a été tué)"
+          });
+        } else {
+          setNotification({
+            show: true,
+            type: 'success',
+            message: 'Ce monstre a bien été trouvé dans MZ'
+          });
+        }
         await fetchMonsters();
       } else {
-        // Show failure notification
         setNotification({
           show: true,
           type: 'error',
@@ -97,7 +101,6 @@ const Monsters = () => {
         });
       }
     } catch (err) {
-      // Show failure notification
       setNotification({
         show: true,
         type: 'error',
@@ -200,6 +203,7 @@ const Monsters = () => {
   };
 
   const getArmMDisplay = (monster) => {
+    if (monster.is_dead) return '-';
     if (!monster.mob_json || typeof monster.mob_json !== 'object') {
       return '-';
     }
@@ -220,6 +224,9 @@ const Monsters = () => {
   };
 
   const getNameBoxClass = (monster) => {
+    if (monster.is_dead) {
+      return 'name-box-purple';
+    }
     if (!monster.mob_json || typeof monster.mob_json !== 'object') {
       return 'name-box-gray';
     }
@@ -346,7 +353,7 @@ const Monsters = () => {
       const hours = String(date.getHours()).padStart(2, '0');
       const minutes = String(date.getMinutes()).padStart(2, '0');
       
-      return `@ ${day}/${month} ${hours}:${minutes}\n Initial: ${getPVDisplay(monster, false)}`;
+      return `@ ${day}/${month} ${hours}:${minutes}\nInitial: ${getPVDisplay(monster, false)}\nBlessure: ${monster.mob_json.bless}%`;
     } catch (e) {
       return null;
     }
@@ -448,14 +455,25 @@ const Monsters = () => {
                   return (
                     <tr key={monster.id}>
                       <td><span className={getNameBoxClass(monster)}>{monster.mob_id}</span></td>
-                      <td>{monster.mob_name_full}</td>
-                      <td>{getLevelDisplay(monster)}</td>
-                      <td>{getPVDisplay(monster)}</td>
-                      <td>{getESQDisplay(monster) === '-' 
-                        ? '-' 
-                        : <>{getESQDisplay(monster)} <b>D6</b></>
-                      }</td>
-                      <td>{getArmPDisplay(monster)} (<b>P</b>)| {getArmMDisplay(monster)} (<b>M</b>)</td>
+
+                      {monster.is_dead ? (
+                        <>
+                          <td>{monster.mob_name_full} ☠️</td>
+                          <td>{getLevelDisplay(monster)}</td>
+                          <td colSpan="3" style={{ textAlign: 'center', color: 'gray' }}></td>
+                        </>
+                      ) : (
+                        <>
+                          <td>{monster.mob_name_full}</td>
+                          <td>{getLevelDisplay(monster)}</td>
+                          <td>{getPVDisplay(monster)}</td>
+                          <td>{getESQDisplay(monster) === '-' 
+                            ? '-' 
+                            : <>{getESQDisplay(monster)} <b>D6</b></>
+                          }</td>
+                          <td>{getArmPDisplay(monster)} (<b>P</b>)| {getArmMDisplay(monster)} (<b>M</b>)</td>
+                        </>
+                      )}
                       <td>
                         <div className="action-buttons">
                           <button onClick={() => handleFetchMZ(monster.mob_id)} className="btn btn-secondary">🔎 MZ</button>
@@ -498,9 +516,11 @@ const Monsters = () => {
                 <div key={monster.id} className="monster-card">
                   <div className="card-header">
                     <span className={getNameBoxClass(monster)}>{monster.mob_id}</span>
-                    <span className="monster-name">{monster.mob_name_full}</span>
+                    <span className="monster-name">{monster.mob_name_full}{monster.is_dead ? ' ☠️' : ''}</span>
                   </div>
                   
+                  {/* Only show the body if the monster is alive, or any other boolean condition */}
+                  {!monster.is_dead && (
                   <div className="card-body">
                     <div className="stat-row">
                       <span><strong>Niveau:</strong> {getLevelDisplay(monster)}</span>
@@ -533,6 +553,7 @@ const Monsters = () => {
                       <span><strong>Arm:</strong> {getArmPDisplay(monster)} (<b>P</b>) | {getArmMDisplay(monster)} (<b>M</b>)</span>
                     </div>
                   </div>
+                  )}
 
                   <div className="card-footer">
                     <div className="card-action-buttons">

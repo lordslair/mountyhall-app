@@ -12,6 +12,13 @@ from typing import Optional, Tuple
 monsters_bp = Blueprint('monsters', __name__, url_prefix='/monsters')
 logger = logging.getLogger(__name__)
 
+def is_monster_dead(html_content: str) -> bool:
+    """Check if MonsterView page indicates the monster does not exist or has been killed."""
+    # Robust check: handle encoding variants (e.g. Tué, été)
+    dead_markers = ["n'existe pas", "été Tué", "ete Tue"]
+    return any(marker in html_content for marker in dead_markers)
+
+
 def extract_monster_name(html_content: str) -> Optional[Tuple[str, str, str]]:
     """Extract monster name from HTML using regex pattern.
     
@@ -123,6 +130,28 @@ def fetch_mz_data(mob_id):
         if not monster.mob_name_full:
             return jsonify({'error': 'Monster name is missing'}), 400
         
+        # Check MonsterView.php before MZ API: if dead, flag and skip MZ
+        monster_view_url = f'https://games.mountyhall.com/mountyhall/View/MonsterView.php?ai_IDPJ={mob_id}'
+        try:
+            mv_response = requests.get(monster_view_url, timeout=10)
+            mv_response.raise_for_status()
+            if is_monster_dead(mv_response.text):
+                monster.is_dead = True
+                monster.updated_at = datetime.utcnow()
+                db.session.commit()
+                logger.info(f"Monster mob_id={mob_id} flagged as dead (n'existe pas ou a été tué)")
+                return jsonify({
+                    'success': True,
+                    'dead': True,
+                    'message': "Monstre marqué comme mort (n'existe pas ou a été tué)"
+                }), 200
+        except requests.RequestException as e:
+            logger.error(f"Failed to fetch MonsterView for mob_id={mob_id}: {str(e)}")
+            return jsonify({
+                'error': f"Impossible de vérifier le statut du monstre: {str(e)}",
+                'success': False
+            }), 500
+        
         # Call MZ API
         mz_url = 'https://mz.mh.raistlin.fr/mz/getCaracMonstre.php'
         headers = {
@@ -152,8 +181,9 @@ def fetch_mz_data(mob_id):
             
             mob_json = mz_data[0]
             
-            # Store mob_json as JSON string in database
+            # Store mob_json as JSON string in database, clear dead flag if resurrected
             monster.mob_json = json.dumps(mob_json, ensure_ascii=False)
+            monster.is_dead = False
             monster.updated_at = datetime.utcnow()
             db.session.commit()
             

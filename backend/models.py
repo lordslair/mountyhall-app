@@ -48,6 +48,7 @@ class Monster(db.Model):
     mob_id = db.Column(db.String(50), nullable=False)
     mob_name_full = db.Column(db.String(255), nullable=True)
     mob_json = db.Column(db.Text, nullable=True)  # JSON data from MZ API stored as text
+    is_dead = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
@@ -62,6 +63,7 @@ class Monster(db.Model):
             'mob_id': self.mob_id,
             'mob_name_full': self.mob_name_full,
             'mob_json': self.mob_json,
+            'is_dead': self.is_dead,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

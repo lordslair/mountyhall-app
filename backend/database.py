@@ -31,6 +31,25 @@ def ensure_instance_directory(db_path: str):
             # Database file is in current directory, no subdirectory needed
             logger.debug("Database file will be created in current directory")
 
+def _migrate_monsters_add_is_dead(db_instance):
+    """Add is_dead column to monsters table if it does not exist (for existing DBs)."""
+    from sqlalchemy import inspect, text
+    inspector = inspect(db_instance.engine)
+    tables = inspector.get_table_names()
+    if 'monsters' not in tables:
+        return
+    columns = [col['name'] for col in inspector.get_columns('monsters')]
+    if 'is_dead' in columns:
+        return
+    try:
+        with db_instance.engine.connect() as conn:
+            conn.execute(text('ALTER TABLE monsters ADD COLUMN is_dead BOOLEAN DEFAULT 0'))
+            conn.commit()
+        logger.info("Migration: added is_dead column to monsters table")
+    except Exception as e:
+        logger.warning(f"Migration is_dead skipped or failed: {e}")
+
+
 def init_db(app: Flask):
     """Initialize the database with the Flask app.
     
@@ -65,6 +84,9 @@ def init_db(app: Flask):
         try:
             # Create all tables (this is idempotent - won't recreate existing tables)
             db.create_all()
+            
+            # One-time migration: add is_dead column to monsters if missing
+            _migrate_monsters_add_is_dead(db)
             
             if db_exists:
                 logger.info("Database already exists. Tables verified/created.")
