@@ -451,7 +451,10 @@ const Monsters = () => {
                       <td>{monster.mob_name_full}</td>
                       <td>{getLevelDisplay(monster)}</td>
                       <td>{getPVDisplay(monster)}</td>
-                      <td>{getESQDisplay(monster)} <b>D6</b></td>
+                      <td>{getESQDisplay(monster) === '-' 
+                        ? '-' 
+                        : <>{getESQDisplay(monster)} <b>D6</b></>
+                      }</td>
                       <td>{getArmPDisplay(monster)} (<b>P</b>)| {getArmMDisplay(monster)} (<b>M</b>)</td>
                       <td>
                         <div className="action-buttons">
@@ -521,7 +524,10 @@ const Monsters = () => {
                       </span>
                     </div>
                     <div className="stat-row">
-                      <span><strong>ESQ:</strong> {getESQDisplay(monster)} <b>D6</b></span>
+                      <span><strong>ESQ:</strong> {getESQDisplay(monster) === '-' 
+                        ? '-' 
+                        : <>{getESQDisplay(monster)} <b>D6</b></>
+                      }</span>
                     </div>
                     <div className="stat-row">
                       <span><strong>Arm:</strong> {getArmPDisplay(monster)} (<b>P</b>) | {getArmMDisplay(monster)} (<b>M</b>)</span>
