@@ -1,4 +1,35 @@
 services:
+
+  caddy:
+    image: caddy:latest
+    container_name: mountyhall-caddy
+    build:
+      context: ./caddy
+      dockerfile_inline: |
+        FROM caddy:builder AS builder
+        RUN xcaddy build --with github.com/caddy-dns/ovh
+        FROM caddy:latest
+        COPY --from=builder /usr/bin/caddy /usr/bin/caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # Optionnel : pour le support de HTTP/3
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - ./caddy/data:/data
+      - ./caddy/config:/config
+    environment:
+      - OVH_APPLICATION_KEY=${OVH_APPLICATION_KEY}
+      - OVH_APPLICATION_SECRET=${OVH_APPLICATION_SECRET}
+      - OVH_CONSUMER_KEY=${OVH_CONSUMER_KEY}
+      - MY_DOMAIN=${MY_DOMAIN}
+      - MY_API_DOMAIN=${MY_API_DOMAIN}
+    depends_on:
+      - frontend
+    networks:
+      - mountyhall-network
+
   backend:
     build:
       context: ./backend
@@ -28,10 +59,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
+        VITE_API_URL: ${VITE_API_URL}
     container_name: mountyhall-frontend
     ports:
-      - "3000:80"
+      - "3000:3000"
     depends_on:
       - backend
     restart: unless-stopped

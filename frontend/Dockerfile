@@ -4,7 +4,7 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 # Accept build arguments
-ARG VITE_API_URL=http://localhost:5000
+ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 
 # Copy package files
@@ -27,7 +27,7 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy custom nginx configuration for SPA routing
 RUN echo 'server { \
-    listen 80; \
+    listen 3000; \
     server_name localhost; \
     root /usr/share/nginx/html; \
     index index.html; \
@@ -36,8 +36,8 @@ RUN echo 'server { \
     } \
 }' > /etc/nginx/conf.d/default.conf
 
-# Expose port 80
-EXPOSE 80
+# Expose port 3000
+EXPOSE 3000
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
