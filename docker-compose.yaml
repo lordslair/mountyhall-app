@@ -25,6 +25,9 @@ services:
       - OVH_CONSUMER_KEY=${OVH_CONSUMER_KEY}
       - MY_DOMAIN=${MY_DOMAIN}
       - MY_API_DOMAIN=${MY_API_DOMAIN}
+      - MY_DB_DOMAIN=${MY_DB_DOMAIN}
+      - HTPASSWD_USERNAME=${HTPASSWD_USERNAME}
+      - HTPASSWD_PASSWORD=${HTPASSWD_PASSWORD}
     depends_on:
       - frontend
     networks:
@@ -65,6 +68,18 @@ services:
       - "3000:3000"
     depends_on:
       - backend
+    restart: unless-stopped
+    networks:
+      - mountyhall-network
+
+  sqlite-web:
+    image: ghcr.io/coleifer/sqlite-web:latest
+    container_name: mountyhall-sqlite-web
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend/instance:/data
+    command: app.db
     restart: unless-stopped
     networks:
       - mountyhall-network

@@ -23,3 +23,22 @@
     
     reverse_proxy backend:5000
 }
+
+{$MY_DB_DOMAIN} {
+# Basic Auth Layer
+    basicauth / {
+        # Username              Hashed Password
+        {$HTPASSWD_USERNAME}    {$HTPASSWD_PASSWORD}
+    }
+
+    tls {
+        dns ovh {
+            endpoint "ovh-eu"
+            application_key {$OVH_APPLICATION_KEY}
+            application_secret {$OVH_APPLICATION_SECRET}
+            consumer_key {$OVH_CONSUMER_KEY}
+        }
+    }
+    
+    reverse_proxy sqlite-web:8080
+}
