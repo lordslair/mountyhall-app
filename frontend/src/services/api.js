@@ -156,6 +156,12 @@ export const api = {
     });
   },
 
+  getMonsterEvents: async (mob_id) => {
+    return apiRequest(`/monsters/${mob_id}/events`, {
+      method: 'GET',
+    });
+  },
+
   getMonsters: async () => {
     return apiRequest('/monsters', {
       method: 'GET',

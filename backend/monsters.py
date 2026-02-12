@@ -5,6 +5,7 @@ from database import db
 import requests
 import logging
 import re
+import time
 from datetime import datetime
 import json
 from typing import Optional, Tuple
@@ -211,6 +212,57 @@ def fetch_mz_data(mob_id):
         db.session.rollback()
         logger.error(f"Error fetching MZ data: {str(e)}", exc_info=True)
         return jsonify({'error': 'Failed to fetch MZ data', 'details': str(e)}), 500
+
+@monsters_bp.route('/<mob_id>/events', methods=['GET'])
+@jwt_required()
+def get_monster_events(mob_id):
+    """Fetch monster events from SCIZ API (last 48 hours)."""
+    try:
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        if not user.sciz_token:
+            return jsonify({
+                'error': 'Sciz token not configured. Please set your sciz token in your profile.'
+            }), 400
+
+        # 13-digit millisecond timestamps
+        timestamp_now = int(time.time() * 1000)
+        timestamp_48hours_before = timestamp_now - (48 * 60 * 60 * 1000)
+
+        url = (
+            f'https://www.sciz.fr/api/hook/events/'
+            f'{mob_id}/{timestamp_48hours_before}/{timestamp_now}'
+        )
+        headers = {
+            'Authorization': user.sciz_token,
+            'Content-Type': 'application/json',
+        }
+
+        logger.info(f"Fetching events from SCIZ for mob_id={mob_id}, user_id={user_id}")
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            events = response.json().get('events', [])
+        except requests.RequestException as e:
+            logger.error(f"Failed to fetch events from SCIZ for mob_id={mob_id}: {str(e)}")
+            return jsonify({'error': f'Failed to fetch events: {str(e)}'}), 500
+        except (ValueError, json.JSONDecodeError) as e:
+            logger.error(f"Failed to parse SCIZ events response for mob_id={mob_id}: {str(e)}")
+            return jsonify({'error': 'Invalid response from SCIZ API'}), 500
+
+        if not isinstance(events, list):
+            return jsonify({'error': 'Invalid response from SCIZ API', 'events': []}), 200
+
+        logger.info(f"Successfully fetched {len(events)} events for mob_id={mob_id}")
+        return jsonify(events), 200
+
+    except Exception as e:
+        logger.error(f"Error fetching monster events: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Failed to fetch monster events', 'details': str(e)}), 500
 
 @monsters_bp.route('', methods=['GET'])
 @jwt_required()

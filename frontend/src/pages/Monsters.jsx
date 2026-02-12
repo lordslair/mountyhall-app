@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { api } from '../services/api';
 
 const Monsters = () => {
@@ -8,6 +8,9 @@ const Monsters = () => {
   const [searchInput, setSearchInput] = useState('');
   const [searching, setSearching] = useState(false);
   const [notification, setNotification] = useState({ show: false, type: '', message: '' });
+  const [expandedMonsterId, setExpandedMonsterId] = useState(null);
+  const [eventsCache, setEventsCache] = useState({});
+  const [loadingEventsId, setLoadingEventsId] = useState(null);
 
   useEffect(() => {
     fetchMonsters();
@@ -315,6 +318,53 @@ const Monsters = () => {
     }
   };
 
+  const handleMonsterNameClick = async (mobId) => {
+    if (expandedMonsterId === mobId) {
+      setExpandedMonsterId(null);
+      return;
+    }
+    setExpandedMonsterId(mobId);
+
+    const cached = eventsCache[mobId];
+    if (cached !== undefined) {
+      return;
+    }
+
+    setLoadingEventsId(mobId);
+    try {
+      const events = await api.getMonsterEvents(mobId);
+      setEventsCache((prev) => ({ ...prev, [mobId]: events }));
+    } catch (err) {
+      setEventsCache((prev) => ({ ...prev, [mobId]: { error: err.message } }));
+    } finally {
+      setLoadingEventsId(null);
+    }
+  };
+
+  const renderEventsBlock = (mobId) => {
+    if (loadingEventsId === mobId) {
+      return <div className="monster-events-block">Chargement...</div>;
+    }
+    const cached = eventsCache[mobId];
+    if (cached?.error) {
+      return <div className="monster-events-block monster-events-error">{cached.error}</div>;
+    }
+    if (Array.isArray(cached)) {
+      const messages = cached.map((e) => e?.message ?? '-').filter(Boolean);
+      if (messages.length === 0) {
+        return <div className="monster-events-block">Aucun événement.</div>;
+      }
+      return (
+        <div className="monster-events-block">
+          {messages.map((msg, i) => (
+            <div key={i} className="monster-event-line">{msg}</div>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
   const formatTimegmt = (monster) => {
     if (!monster.mob_json || typeof monster.mob_json !== 'object') {
       return null;
@@ -451,20 +501,36 @@ const Monsters = () => {
                 </tr>
               </thead>
               <tbody>
-                {monsters.map((monster) => {
-                  return (
-                    <tr key={monster.id}>
+                {monsters.map((monster) => (
+                  <Fragment key={monster.id}>
+                    <tr>
                       <td><span className={getNameBoxClass(monster)}>{monster.mob_id}</span></td>
 
                       {monster.is_dead ? (
                         <>
-                          <td>{monster.mob_name_full} ☠️</td>
+                          <td>
+                            <button
+                              type="button"
+                              className="monster-name-btn"
+                              onClick={() => handleMonsterNameClick(monster.mob_id)}
+                            >
+                              {monster.mob_name_full} ☠️
+                            </button>
+                          </td>
                           <td>{getLevelDisplay(monster)}</td>
                           <td colSpan="3" style={{ textAlign: 'center', color: 'gray' }}></td>
                         </>
                       ) : (
                         <>
-                          <td>{monster.mob_name_full}</td>
+                          <td>
+                            <button
+                              type="button"
+                              className="monster-name-btn"
+                              onClick={() => handleMonsterNameClick(monster.mob_id)}
+                            >
+                              {monster.mob_name_full}
+                            </button>
+                          </td>
                           <td>{getLevelDisplay(monster)}</td>
                           <td>{getPVDisplay(monster)}</td>
                           <td>{getESQDisplay(monster) === '-' 
@@ -502,8 +568,15 @@ const Monsters = () => {
                         </div>
                       </td>
                     </tr>
-                  );
-                })}
+                    {expandedMonsterId === monster.mob_id && (
+                      <tr>
+                        <td colSpan="7" className="monster-events-cell">
+                          {renderEventsBlock(monster.mob_id)}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
               </tbody>
             </table>
           </div>
@@ -516,7 +589,13 @@ const Monsters = () => {
                 <div key={monster.id} className="monster-card">
                   <div className="card-header">
                     <span className={getNameBoxClass(monster)}>{monster.mob_id}</span>
-                    <span className="monster-name">{monster.mob_name_full}{monster.is_dead ? ' ☠️' : ''}</span>
+                    <button
+                      type="button"
+                      className="monster-name monster-name-btn"
+                      onClick={() => handleMonsterNameClick(monster.mob_id)}
+                    >
+                      {monster.mob_name_full}{monster.is_dead ? ' ☠️' : ''}
+                    </button>
                   </div>
                   
                   {/* Only show the body if the monster is alive, or any other boolean condition */}
@@ -554,6 +633,8 @@ const Monsters = () => {
                     </div>
                   </div>
                   )}
+
+                  {expandedMonsterId === monster.mob_id && renderEventsBlock(monster.mob_id)}
 
                   <div className="card-footer">
                     <div className="card-action-buttons">
