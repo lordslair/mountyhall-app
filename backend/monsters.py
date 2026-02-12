@@ -67,7 +67,6 @@ def search_monster():
             return jsonify({'error': f'Failed to fetch monster information: {str(e)}'}), 500
         
         # Extract monster name using regex
-        logger.warning(f"Response text: {response.text}")
         result = extract_monster_name(response.text)
         
         if not result:
