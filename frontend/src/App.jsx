@@ -8,6 +8,7 @@ import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
 import Group from './pages/Group';
 import Monsters from './pages/Monsters';
+import Admin from './pages/Admin';
 import './App.css';
 
 function App() {
@@ -73,6 +74,7 @@ function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/group" element={<Group />} />
               <Route path="/monsters" element={<Monsters />} />
+              <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>

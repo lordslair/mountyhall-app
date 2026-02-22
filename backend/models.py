@@ -12,6 +12,7 @@ class User(db.Model):
     troll_id = db.Column(db.String(50), nullable=True)
     troll_name = db.Column(db.String(255), nullable=True)  # UTF-8 support
     sciz_token = db.Column(db.String(255), nullable=True)
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     
     def set_password(self, password: str):
@@ -36,6 +37,7 @@ class User(db.Model):
             'troll_id': self.troll_id,
             'troll_name': self.troll_name,
             'sciz_token': self.sciz_token,
+            'is_admin': self.is_admin,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 

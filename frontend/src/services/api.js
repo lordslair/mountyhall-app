@@ -179,6 +179,13 @@ export const api = {
       method: 'DELETE',
     });
   },
+
+  // Admin
+  getAdminMetrics: async () => {
+    return apiRequest('/admin/metrics', {
+      method: 'GET',
+    });
+  },
 };
 
 export { getToken, setToken, removeToken };

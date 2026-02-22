@@ -31,6 +31,25 @@ def ensure_instance_directory(db_path: str):
             # Database file is in current directory, no subdirectory needed
             logger.debug("Database file will be created in current directory")
 
+def _migrate_users_add_is_admin(db_instance):
+    """Add is_admin column to users table if it does not exist (for existing DBs)."""
+    from sqlalchemy import inspect, text
+    inspector = inspect(db_instance.engine)
+    tables = inspector.get_table_names()
+    if 'users' not in tables:
+        return
+    columns = [col['name'] for col in inspector.get_columns('users')]
+    if 'is_admin' in columns:
+        return
+    try:
+        with db_instance.engine.connect() as conn:
+            conn.execute(text('ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0'))
+            conn.commit()
+        logger.info("Migration: added is_admin column to users table")
+    except Exception as e:
+        logger.warning(f"Migration is_admin skipped or failed: {e}")
+
+
 def _migrate_monsters_add_is_dead(db_instance):
     """Add is_dead column to monsters table if it does not exist (for existing DBs)."""
     from sqlalchemy import inspect, text
@@ -85,7 +104,8 @@ def init_db(app: Flask):
             # Create all tables (this is idempotent - won't recreate existing tables)
             db.create_all()
             
-            # One-time migration: add is_dead column to monsters if missing
+            # One-time migrations: add columns if missing (for existing DBs)
+            _migrate_users_add_is_admin(db)
             _migrate_monsters_add_is_dead(db)
             
             if db_exists:

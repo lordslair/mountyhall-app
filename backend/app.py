@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
@@ -9,6 +9,7 @@ from database import init_db
 from auth import auth_bp
 from group import group_bp
 from monsters import monsters_bp
+from admin import admin_bp
 
 # Load environment variables
 load_dotenv()
@@ -57,7 +58,14 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(group_bp)
     app.register_blueprint(monsters_bp)
+    app.register_blueprint(admin_bp)
     
+    # Health check endpoint for Docker
+    @app.route('/health', methods=['GET'])
+    def health():
+        """Health check endpoint for Docker."""
+        return jsonify({'status': 'healthy'}), 200
+
     # Add after_request handler to ALWAYS set CORS headers
     # This ensures headers are present even if Flask-CORS misses them
     @app.after_request

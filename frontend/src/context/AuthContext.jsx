@@ -94,6 +94,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateProfile,
     isAuthenticated: !!user,
+    isAdmin: !!user?.is_admin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
