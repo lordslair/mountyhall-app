@@ -329,83 +329,142 @@ const Group = () => {
         </button>
       </div>
 
-      <div className="table-container">
-        <table className="group-table">
-          <thead>
-            <tr>
-              {sortedKeys.map((key) => (
-                <th
-                  key={key}
-                  onClick={() => handleSort(key)}
-                  className={sortConfig.key === key ? 'sorted' : ''}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {key}
-                  <span className="sort-icon">{getSortIcon(key)}</span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {trolls.map((troll, index) => {
-              const pvPercentage = getPVPercentage(troll);
-              
-              // Determine Troll name box color based on PV percentage
-              let nameBoxClass = '';
-              if (pvPercentage !== null) {
-                if (pvPercentage > 80) {
-                  nameBoxClass = 'name-box-green';
-                } else if (pvPercentage >= 40) {
-                  nameBoxClass = 'name-box-yellow';
-                } else {
-                  nameBoxClass = 'name-box-red';
-                }
+      <div className="group-container">
+        {/* DESKTOP TABLE (Hidden on mobile) */}
+        <div className="table-view">
+          <div className="table-container">
+            <table className="group-table">
+              <thead>
+                <tr>
+                  {sortedKeys.map((key) => (
+                    <th
+                      key={key}
+                      onClick={() => handleSort(key)}
+                      className={sortConfig.key === key ? 'sorted' : ''}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {key}
+                      <span className="sort-icon">{getSortIcon(key)}</span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {trolls.map((troll, index) => {
+                  const pvPercentage = getPVPercentage(troll);
+                  
+                  // Determine Troll name box color based on PV percentage
+                  let nameBoxClass = '';
+                  if (pvPercentage !== null) {
+                    if (pvPercentage > 80) {
+                      nameBoxClass = 'name-box-green';
+                    } else if (pvPercentage >= 40) {
+                      nameBoxClass = 'name-box-yellow';
+                    } else {
+                      nameBoxClass = 'name-box-red';
+                    }
+                  } else {
+                    // Gray box when PV percentage can't be calculated
+                    nameBoxClass = 'name-box-gray';
+                  }
+                  
+                  // Check if PA is 6 (handle both string and integer)
+                  const paValue = troll.pa != null ? Number(troll.pa) : null;
+                  const isPA6 = paValue === 6;
+                  
+                  return (
+                    <tr key={troll.id || index}>
+                      {sortedKeys.map((key) => {
+                        const isTrollColumn = key === 'Tröll';
+                        const isPAColumn = key === 'PA';
+                        
+                        return (
+                          <td key={key}>
+                            {isTrollColumn ? (
+                              troll.caracs ? (
+                                <span
+                                  className={`troll-name-clickable ${nameBoxClass}`}
+                                  onClick={(e) => handleNomClick(e, troll)}
+                                  style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                                >
+                                  {getCellValue(troll, key)}
+                                </span>
+                              ) : (
+                                <span className={nameBoxClass}>
+                                  {getCellValue(troll, key)}
+                                </span>
+                              )
+                            ) : isPAColumn ? (
+                              <span className={isPA6 ? 'name-box-green' : 'name-box-gray'}>
+                                {getCellValue(troll, key)}
+                              </span>
+                            ) : (
+                              getCellValue(troll, key)
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* MOBILE CARDS (Hidden on desktop) */}
+        <div className="cards-view">
+          {trolls.map((troll, index) => {
+            const pvPercentage = getPVPercentage(troll);
+            let nameBoxClass = '';
+            if (pvPercentage !== null) {
+              if (pvPercentage > 80) {
+                nameBoxClass = 'name-box-green';
+              } else if (pvPercentage >= 40) {
+                nameBoxClass = 'name-box-yellow';
               } else {
-                // Gray box when PV percentage can't be calculated
-                nameBoxClass = 'name-box-gray';
+                nameBoxClass = 'name-box-red';
               }
-              
-              // Check if PA is 6 (handle both string and integer)
-              const paValue = troll.pa != null ? Number(troll.pa) : null;
-              const isPA6 = paValue === 6;
-              
-              return (
-                <tr key={troll.id || index}>
-                  {sortedKeys.map((key) => {
-                    const isTrollColumn = key === 'Tröll';
-                    const isPAColumn = key === 'PA';
-                    
+            } else {
+              nameBoxClass = 'name-box-gray';
+            }
+            const paValue = troll.pa != null ? Number(troll.pa) : null;
+            const isPA6 = paValue === 6;
+
+            return (
+              <div key={troll.id || index} className="group-troll-card">
+                <div className="card-header">
+                  <span className={nameBoxClass}>{troll.id ?? '-'}</span>
+                  {troll.caracs ? (
+                    <button
+                      type="button"
+                      className="group-troll-name-btn"
+                      onClick={(e) => handleNomClick(e, troll)}
+                    >
+                      {getCellValue(troll, 'Tröll')}
+                    </button>
+                  ) : (
+                    <span className="group-troll-name">{getCellValue(troll, 'Tröll')}</span>
+                  )}
+                  <span className={`group-card-pa ${isPA6 ? 'name-box-green' : 'name-box-gray'}`}>
+                    {getCellValue(troll, 'PA')}
+                  </span>
+                </div>
+                <div className="card-body">
+                  {sortedKeys.filter(k => k !== 'Tröll' && k !== 'PA').map((key) => {
+                    const value = getCellValue(troll, key);
                     return (
-                      <td key={key}>
-                        {isTrollColumn ? (
-                          troll.caracs ? (
-                            <span
-                              className={`troll-name-clickable ${nameBoxClass}`}
-                              onClick={(e) => handleNomClick(e, troll)}
-                              style={{ cursor: 'pointer', textDecoration: 'underline' }}
-                            >
-                              {getCellValue(troll, key)}
-                            </span>
-                          ) : (
-                            <span className={nameBoxClass}>
-                              {getCellValue(troll, key)}
-                            </span>
-                          )
-                        ) : isPAColumn ? (
-                          <span className={isPA6 ? 'name-box-green' : 'name-box-gray'}>
-                            {getCellValue(troll, key)}
-                          </span>
-                        ) : (
-                          getCellValue(troll, key)
-                        )}
-                      </td>
+                      <div key={key} className="stat-row stat-row-dense">
+                        <span className="stat-label">{key}</span>
+                        <span>{value}</span>
+                      </div>
                     );
                   })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {tooltip.show && (

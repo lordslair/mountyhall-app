@@ -993,6 +993,83 @@ html {
   }
 }
 
+/* Group page mobile cards (monsters-container equivalent) */
+.group-container {
+  margin-top: 0;
+  width: 100%;
+}
+
+/* Group troll card - mobile only, mirrors monster-card */
+.group-troll-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.group-troll-card .card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.8rem;
+  margin-bottom: 0.6rem;
+}
+
+.group-card-pa {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.group-troll-name-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font-weight: bold;
+  font-size: 1.05rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.group-troll-name-btn:hover {
+  text-decoration: underline;
+}
+
+.group-troll-name {
+  font-weight: bold;
+  font-size: 1.05rem;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Dense stat rows for maximum info at a glance */
+.stat-row-dense {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+  gap: 0.75rem;
+}
+
+.stat-row-dense .stat-label {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: #555;
+  min-width: 4.5em;
+}
+
+.stat-row-dense span:last-child {
+  text-align: right;
+  word-break: break-word;
+}
+
 /* Trash Button */
 .btn-trash {
   padding: 0.5rem;
