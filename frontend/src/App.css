@@ -102,7 +102,7 @@
 .app-main {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 1rem;
   width: 100%;
@@ -990,6 +990,47 @@ html {
 
   .group-page {
     padding: 10px; /* Give more room on the edges */
+  }
+
+  /* Group cards: body hidden by default, shown on header tap */
+  .group-troll-card .card-body {
+    display: none;
+  }
+
+  .group-troll-card-expanded .card-body {
+    display: block;
+  }
+
+  /* Collapsed: minimal gap between header and card bottom */
+  .group-troll-card:not(.group-troll-card-expanded) .card-header {
+    padding-bottom: 0;
+    margin-bottom: 0;
+    border-bottom: none;
+  }
+
+  .group-card-header-tappable {
+    cursor: pointer;
+    position: relative;
+    padding-right: 1.5rem;
+  }
+
+  .group-card-header-tappable::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid #666;
+    opacity: 0.6;
+    transition: transform 0.2s;
+  }
+
+  .group-troll-card-expanded .group-card-header-tappable::after {
+    transform: translateY(-50%) rotate(180deg);
   }
 }
 

@@ -7,6 +7,7 @@ const Group = () => {
   const [error, setError] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [tooltip, setTooltip] = useState({ show: false, content: '', title: '', x: 0, y: 0 });
+  const [expandedCardIndices, setExpandedCardIndices] = useState(() => new Set());
 
   useEffect(() => {
     fetchGroupTrolls();
@@ -277,6 +278,18 @@ const Group = () => {
     setTooltip({ show: false, content: '', title: '', x: 0, y: 0 });
   };
 
+  const toggleCardExpanded = (index) => {
+    setExpandedCardIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
   if (loading) {
     return (
       <div className="group-page">
@@ -431,15 +444,25 @@ const Group = () => {
             const paValue = troll.pa != null ? Number(troll.pa) : null;
             const isPA6 = paValue === 6;
 
+            const isExpanded = expandedCardIndices.has(index);
+
             return (
-              <div key={troll.id || index} className="group-troll-card">
-                <div className="card-header">
+              <div key={troll.id || index} className={`group-troll-card ${isExpanded ? 'group-troll-card-expanded' : ''}`}>
+                <div
+                  className="card-header group-card-header-tappable"
+                  onClick={() => toggleCardExpanded(index)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCardExpanded(index); } }}
+                  aria-expanded={isExpanded}
+                  aria-label={isExpanded ? 'Replier les détails' : 'Déplier les détails'}
+                >
                   <span className={nameBoxClass}>{troll.id ?? '-'}</span>
                   {troll.caracs ? (
                     <button
                       type="button"
                       className="group-troll-name-btn"
-                      onClick={(e) => handleNomClick(e, troll)}
+                      onClick={(e) => { e.stopPropagation(); handleNomClick(e, troll); }}
                     >
                       {getCellValue(troll, 'Tröll')}
                     </button>
