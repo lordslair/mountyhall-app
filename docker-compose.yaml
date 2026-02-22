@@ -105,3 +105,4 @@ services:
 networks:
   mountyhall-network:
     driver: bridge
+    enable_ipv6: false
