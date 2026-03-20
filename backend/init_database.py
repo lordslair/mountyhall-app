@@ -10,11 +10,7 @@ from app import create_app
 from database import db
 import logging
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Logging is configured when importing app (uses LOG_LEVEL from the environment).
 logger = logging.getLogger(__name__)
 
 def verify_database_structure():

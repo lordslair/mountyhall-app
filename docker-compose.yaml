@@ -51,6 +51,7 @@ services:
     environment:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - FLASK_ENV=${FLASK_ENV:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - DATABASE_URL=sqlite:////app/instance/app.db
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]

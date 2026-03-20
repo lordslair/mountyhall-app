@@ -3,6 +3,7 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 import os
+import sys
 import logging
 
 from database import init_db
@@ -14,9 +15,20 @@ from admin import admin_bp
 # Load environment variables
 load_dotenv()
 
+
+def resolve_log_level():
+    """Parse LOG_LEVEL env (e.g. DEBUG, INFO, WARNING, ERROR, CRITICAL). Default INFO."""
+    raw = (os.getenv('LOG_LEVEL') or 'INFO').strip().upper()
+    level = getattr(logging, raw, None)
+    if isinstance(level, int):
+        return level
+    print(f"Invalid LOG_LEVEL={raw!r}, using INFO", file=sys.stderr)
+    return logging.INFO
+
+
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=resolve_log_level(),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
