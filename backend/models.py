@@ -12,6 +12,10 @@ class User(db.Model):
     troll_id = db.Column(db.String(50), nullable=True)
     troll_name = db.Column(db.String(255), nullable=True)  # UTF-8 support
     sciz_token = db.Column(db.String(255), nullable=True)
+    bt_system = db.Column(db.String(255), nullable=True)
+    bt_login = db.Column(db.String(255), nullable=True)
+    bt_password = db.Column(db.String(255), nullable=True)
+    bt_hash = db.Column(db.String(32), nullable=True)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     
@@ -37,6 +41,10 @@ class User(db.Model):
             'troll_id': self.troll_id,
             'troll_name': self.troll_name,
             'sciz_token': self.sciz_token,
+            'bt_system': self.bt_system,
+            'bt_login': self.bt_login,
+            'bt_password': self.bt_password,
+            'bt_hash': self.bt_hash,
             'is_admin': self.is_admin,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }

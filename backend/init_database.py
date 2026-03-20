@@ -34,7 +34,10 @@ def verify_database_structure():
         
         # Check users table columns
         columns = [col['name'] for col in inspector.get_columns('users')]
-        required_columns = ['id', 'email', 'password_hash', 'troll_id', 'troll_name', 'sciz_token', 'created_at']
+        required_columns = [
+            'id', 'email', 'password_hash', 'troll_id', 'troll_name', 'sciz_token',
+            'is_admin', 'bt_system', 'bt_login', 'bt_password', 'bt_hash', 'created_at',
+        ]
         
         missing_columns = [col for col in required_columns if col not in columns]
         if missing_columns:

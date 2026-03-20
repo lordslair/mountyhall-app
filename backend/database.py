@@ -50,6 +50,31 @@ def _migrate_users_add_is_admin(db_instance):
         logger.warning(f"Migration is_admin skipped or failed: {e}")
 
 
+def _migrate_users_add_bt_columns(db_instance):
+    """Add Bricol'Trolls (BT) columns to users if missing."""
+    from sqlalchemy import inspect, text
+    inspector = inspect(db_instance.engine)
+    if 'users' not in inspector.get_table_names():
+        return
+    columns = {col['name'] for col in inspector.get_columns('users')}
+    alters = [
+        ('bt_system', 'ALTER TABLE users ADD COLUMN bt_system VARCHAR(255)'),
+        ('bt_login', 'ALTER TABLE users ADD COLUMN bt_login VARCHAR(255)'),
+        ('bt_password', 'ALTER TABLE users ADD COLUMN bt_password VARCHAR(255)'),
+        ('bt_hash', 'ALTER TABLE users ADD COLUMN bt_hash VARCHAR(32)'),
+    ]
+    for col_name, ddl in alters:
+        if col_name in columns:
+            continue
+        try:
+            with db_instance.engine.connect() as conn:
+                conn.execute(text(ddl))
+                conn.commit()
+            logger.info(f"Migration: added {col_name} column to users table")
+        except Exception as e:
+            logger.warning(f"Migration {col_name} skipped or failed: {e}")
+
+
 def _migrate_monsters_add_is_dead(db_instance):
     """Add is_dead column to monsters table if it does not exist (for existing DBs)."""
     from sqlalchemy import inspect, text
@@ -106,6 +131,7 @@ def init_db(app: Flask):
             
             # One-time migrations: add columns if missing (for existing DBs)
             _migrate_users_add_is_admin(db)
+            _migrate_users_add_bt_columns(db)
             _migrate_monsters_add_is_dead(db)
             
             if db_exists:

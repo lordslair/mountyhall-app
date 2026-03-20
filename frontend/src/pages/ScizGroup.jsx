@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 
-const Group = () => {
+const ScizGroup = () => {
   const [trolls, setTrolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -17,7 +17,7 @@ const Group = () => {
     try {
       setLoading(true);
       setError('');
-      const data = await api.getGroupTrolls();
+      const data = await api.getScizGroupTrolls();
       
       // Handle different response formats
       if (Array.isArray(data)) {
@@ -293,7 +293,7 @@ const Group = () => {
   if (loading) {
     return (
       <div className="group-page">
-        <div className="loading-spinner">Loading group data...</div>
+        <div className="loading-spinner">Loading SCIZ group data...</div>
       </div>
     );
   }
@@ -301,7 +301,7 @@ const Group = () => {
   if (error) {
     return (
       <div className="group-page">
-        <h2>Mon Groupe</h2>
+        <h2>SCIZ Group</h2>
         <div className="error-message">{error}</div>
         <button onClick={fetchGroupTrolls} className="btn btn-primary">
           Retry
@@ -313,7 +313,7 @@ const Group = () => {
   if (trolls.length === 0) {
     return (
       <div className="group-page">
-        <h2>Mon Groupe</h2>
+        <h2>SCIZ Group</h2>
         <p>No trolls found in your group.</p>
         <button onClick={fetchGroupTrolls} className="btn btn-primary">
           Refresh
@@ -327,9 +327,9 @@ const Group = () => {
   return (
     <div className="group-page">
       <div className="group-header">
-        <h2>Mon Groupe</h2>
-        <button 
-          onClick={fetchGroupTrolls} 
+        <h2>SCIZ Group</h2>
+        <button
+          onClick={fetchGroupTrolls}
           className="btn-refresh-icon"
           aria-label="Refresh"
           title="Refresh"
@@ -519,4 +519,4 @@ const Group = () => {
   );
 };
 
-export default Group;
+export default ScizGroup;

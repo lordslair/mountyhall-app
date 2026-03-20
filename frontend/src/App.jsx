@@ -6,7 +6,8 @@ import RegisterForm from './components/RegisterForm';
 import Profile from './components/Profile';
 import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
-import Group from './pages/Group';
+import ScizGroup from './pages/ScizGroup';
+import BtGroup from './pages/BtGroup';
 import Monsters from './pages/Monsters';
 import Admin from './pages/Admin';
 import './App.css';
@@ -72,7 +73,9 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/group" element={<Group />} />
+              <Route path="/group" element={<Navigate to="/group/sciz" replace />} />
+              <Route path="/group/sciz" element={<ScizGroup />} />
+              <Route path="/group/bt" element={<BtGroup />} />
               <Route path="/monsters" element={<Monsters />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<Navigate to="/" replace />} />

@@ -6,6 +6,9 @@ const Profile = () => {
   const [trollId, setTrollId] = useState('');
   const [trollName, setTrollName] = useState('');
   const [scizToken, setScizToken] = useState('');
+  const [btSystem, setBtSystem] = useState('');
+  const [btLogin, setBtLogin] = useState('');
+  const [btPassword, setBtPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -15,6 +18,9 @@ const Profile = () => {
       setTrollId(user.troll_id || '');
       setTrollName(user.troll_name || '');
       setScizToken(user.sciz_token || '');
+      setBtSystem(user.bt_system || '');
+      setBtLogin(user.bt_login || '');
+      setBtPassword(user.bt_password || '');
     }
   }, [user]);
 
@@ -28,6 +34,9 @@ const Profile = () => {
     if (trollId !== (user?.troll_id || '')) updates.troll_id = trollId || null;
     // troll_name is auto-fetched by backend when troll_id changes, so we don't send it
     if (scizToken !== (user?.sciz_token || '')) updates.sciz_token = scizToken || null;
+    if (btSystem !== (user?.bt_system || '')) updates.bt_system = btSystem || null;
+    if (btLogin !== (user?.bt_login || '')) updates.bt_login = btLogin || null;
+    if (btPassword !== (user?.bt_password || '')) updates.bt_password = btPassword || null;
 
     if (Object.keys(updates).length === 0) {
       setMessage('No changes to save');
@@ -48,6 +57,10 @@ const Profile = () => {
       if (user) {
         setTrollId(user.troll_id || '');
         setTrollName(user.troll_name || '');
+        setScizToken(user.sciz_token || '');
+        setBtSystem(user.bt_system || '');
+        setBtLogin(user.bt_login || '');
+        setBtPassword(user.bt_password || '');
       }
     }
     
@@ -107,6 +120,42 @@ const Profile = () => {
             value={scizToken}
             onChange={(e) => setScizToken(e.target.value)}
             placeholder="Enter your sciz token"
+          />
+        </div>
+
+        <h3 className="profile-section-title">Bricol&apos;Trolls (BT)</h3>
+
+        <div className="form-group">
+          <label htmlFor="bt-system">Nom du système</label>
+          <input
+            id="bt-system"
+            type="text"
+            value={btSystem}
+            onChange={(e) => setBtSystem(e.target.value)}
+            placeholder="Nom du système"
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="bt-login">Compte</label>
+          <input
+            id="bt-login"
+            type="text"
+            value={btLogin}
+            onChange={(e) => setBtLogin(e.target.value)}
+            placeholder="Compte"
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="bt-password">Password</label>
+          <input
+            id="bt-password"
+            type="password"
+            value={btPassword}
+            onChange={(e) => setBtPassword(e.target.value)}
+            placeholder="Password"
+            autoComplete="new-password"
           />
         </div>
 

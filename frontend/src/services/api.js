@@ -135,9 +135,16 @@ export const api = {
     });
   },
 
-  // Group
-  getGroupTrolls: async () => {
-    return apiRequest('/group/trolls', {
+  // Group — SCIZ
+  getScizGroupTrolls: async () => {
+    return apiRequest('/group/sciz/trolls', {
+      method: 'GET',
+    });
+  },
+
+  // Group — BT (stub)
+  getBtGroup: async () => {
+    return apiRequest('/group/bt', {
       method: 'GET',
     });
   },

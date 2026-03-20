@@ -296,6 +296,13 @@
   text-align: center;
 }
 
+.profile-section-title {
+  margin: 1.75rem 0 1rem 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #444;
+}
+
 .profile-info {
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;

@@ -5,7 +5,7 @@ A React PWA frontend and Flask backend API for MountyHall authentication and pro
 ## Features
 
 - User registration and authentication with JWT tokens
-- Profile management (troll_id, troll_name with UTF-8 support, sciz_token)
+- Profile management (troll_id, troll_name with UTF-8 support, sciz_token, Bricol'Trolls BT credentials)
 - Mobile-optimized Progressive Web App (PWA)
 - Docker containerization for easy deployment
 - SQLite database for lightweight data storage

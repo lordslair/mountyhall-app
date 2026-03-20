@@ -3,6 +3,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from models import User
 from database import db
 from datetime import timedelta
+import hashlib
 import re
 import logging
 import requests
@@ -10,6 +11,14 @@ from bs4 import BeautifulSoup
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 logger = logging.getLogger(__name__)
+
+
+def compute_bt_password_hash(password: str):
+    """MD5 hex of UTF-8 uppercase password (Bricol'Trolls convention)."""
+    if not password:
+        return None
+    return hashlib.md5(password.upper().encode('utf-8')).hexdigest()
+
 
 def validate_email(email: str) -> bool:
     """Validate email format."""
@@ -173,7 +182,7 @@ def fetch_troll_name_from_mountyhall(troll_id: str) -> str:
 @auth_bp.route('/profile', methods=['PUT'])
 @jwt_required()
 def update_profile():
-    """Update user profile (troll_id, sciz_token). troll_name is auto-fetched when troll_id changes."""
+    """Update user profile (troll_id, sciz_token, BT credentials). troll_name is auto-fetched when troll_id changes."""
     try:
         user_id = int(get_jwt_identity())
         user = User.query.get(user_id)
@@ -221,7 +230,20 @@ def update_profile():
         # Update sciz_token if provided
         if 'sciz_token' in data:
             user.sciz_token = data['sciz_token'] if data['sciz_token'] else None
-        
+
+        if 'bt_system' in data:
+            user.bt_system = data['bt_system'] if data['bt_system'] else None
+        if 'bt_login' in data:
+            user.bt_login = data['bt_login'] if data['bt_login'] else None
+        if 'bt_password' in data:
+            pw = data['bt_password']
+            if pw:
+                user.bt_password = pw
+                user.bt_hash = compute_bt_password_hash(pw)
+            else:
+                user.bt_password = None
+                user.bt_hash = None
+
         db.session.commit()
         
         return jsonify(user.to_dict()), 200
