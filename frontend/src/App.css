@@ -567,6 +567,69 @@
   font-size: 1.75rem;
 }
 
+.group-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-filter-starred {
+  background: #f0f0f0;
+  border: none;
+  border-radius: 8px;
+  padding: 0 0.75rem;
+  height: 40px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-filter-starred:hover {
+  background: #e8e8e8;
+  color: #333;
+}
+
+.btn-filter-starred[aria-pressed='true'] {
+  background: #fff8e6;
+  color: #8a6d00;
+  box-shadow: inset 0 0 0 1px #e6d08a;
+}
+
+.bt-star-col {
+  width: 2.5rem;
+  text-align: center;
+  cursor: default;
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.bt-star-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 0.15rem 0.25rem;
+  border-radius: 6px;
+  opacity: 0.75;
+}
+
+.bt-star-btn:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.bt-star-btn-active {
+  opacity: 1;
+}
+
+.bt-star-btn-card {
+  flex-shrink: 0;
+  margin-right: 0.25rem;
+}
+
 .btn-refresh-icon, .btn-search-icon {
   background: #f0f0f0;
   border: none;

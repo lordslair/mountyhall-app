@@ -1,13 +1,78 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+
+function starredStorageKey(userId) {
+  return `mountyhapp_sciz_starred_ids_${userId}`;
+}
+
+function filterStorageKey(userId) {
+  return `mountyhapp_sciz_starred_filter_${userId}`;
+}
 
 const ScizGroup = () => {
+  const { user } = useAuth();
   const [trolls, setTrolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [tooltip, setTooltip] = useState({ show: false, content: '', title: '', x: 0, y: 0 });
-  const [expandedCardIndices, setExpandedCardIndices] = useState(() => new Set());
+  const [expandedCardIds, setExpandedCardIds] = useState(() => new Set());
+  const [starredIds, setStarredIds] = useState(() => new Set());
+  const [showStarredOnly, setShowStarredOnly] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    try {
+      const raw = localStorage.getItem(starredStorageKey(user.id));
+      const parsed = JSON.parse(raw || '[]');
+      setStarredIds(new Set(Array.isArray(parsed) ? parsed : []));
+    } catch {
+      setStarredIds(new Set());
+    }
+    try {
+      setShowStarredOnly(localStorage.getItem(filterStorageKey(user.id)) === '1');
+    } catch {
+      setShowStarredOnly(false);
+    }
+  }, [user?.id]);
+
+  const toggleStar = useCallback(
+    (id) => {
+      if (user?.id == null) return;
+      const sid = String(id);
+      setStarredIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(sid)) next.delete(sid);
+        else next.add(sid);
+        localStorage.setItem(starredStorageKey(user.id), JSON.stringify([...next]));
+        return next;
+      });
+    },
+    [user?.id]
+  );
+
+  const toggleStarredFilter = useCallback(() => {
+    setShowStarredOnly((v) => {
+      const next = !v;
+      if (user?.id != null) {
+        localStorage.setItem(filterStorageKey(user.id), next ? '1' : '0');
+      }
+      return next;
+    });
+  }, [user?.id]);
+
+  const showAllTrolls = useCallback(() => {
+    setShowStarredOnly(false);
+    if (user?.id != null) {
+      localStorage.setItem(filterStorageKey(user.id), '0');
+    }
+  }, [user?.id]);
+
+  const displayTrolls = useMemo(() => {
+    if (!showStarredOnly) return trolls;
+    return trolls.filter((t) => starredIds.has(String(t.id)));
+  }, [trolls, showStarredOnly, starredIds]);
 
   useEffect(() => {
     fetchGroupTrolls();
@@ -278,17 +343,61 @@ const ScizGroup = () => {
     setTooltip({ show: false, content: '', title: '', x: 0, y: 0 });
   };
 
-  const toggleCardExpanded = (index) => {
-    setExpandedCardIndices((prev) => {
+  const toggleCardExpanded = (cardId) => {
+    setExpandedCardIds((prev) => {
       const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
+      if (next.has(cardId)) next.delete(cardId);
+      else next.add(cardId);
       return next;
     });
   };
+
+  const renderStarButton = (troll, extraClass = '') => {
+    const sid = String(troll.id);
+    const starred = starredIds.has(sid);
+    return (
+      <button
+        type="button"
+        className={`bt-star-btn ${starred ? 'bt-star-btn-active' : ''} ${extraClass}`.trim()}
+        aria-label={starred ? 'Remove from favourites' : 'Add to favourites'}
+        aria-pressed={starred}
+        title={starred ? 'Remove from favourites' : 'Add to favourites'}
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleStar(troll.id);
+        }}
+      >
+        {starred ? '⭐' : '☆'}
+      </button>
+    );
+  };
+
+  const renderHeaderActions = () => (
+    <div className="group-header-actions">
+      <button
+        type="button"
+        className="btn-filter-starred"
+        onClick={toggleStarredFilter}
+        aria-pressed={showStarredOnly}
+        title={showStarredOnly ? 'Show all trolls' : 'Show starred trolls only'}
+      >
+        {showStarredOnly ? 'Show all' : 'Starred only'}
+      </button>
+      <button
+        type="button"
+        onClick={fetchGroupTrolls}
+        className="btn-refresh-icon"
+        aria-label="Refresh"
+        title="Refresh"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+      </button>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -303,7 +412,7 @@ const ScizGroup = () => {
       <div className="group-page">
         <h2>SCIZ Group</h2>
         <div className="error-message">{error}</div>
-        <button onClick={fetchGroupTrolls} className="btn btn-primary">
+        <button type="button" onClick={fetchGroupTrolls} className="btn btn-primary">
           Retry
         </button>
       </div>
@@ -315,7 +424,7 @@ const ScizGroup = () => {
       <div className="group-page">
         <h2>SCIZ Group</h2>
         <p>No trolls found in your group.</p>
-        <button onClick={fetchGroupTrolls} className="btn btn-primary">
+        <button type="button" onClick={fetchGroupTrolls} className="btn btn-primary">
           Refresh
         </button>
       </div>
@@ -324,22 +433,26 @@ const ScizGroup = () => {
 
   const sortedKeys = getAllKeys();
 
+  if (displayTrolls.length === 0 && showStarredOnly) {
+    return (
+      <div className="group-page">
+        <div className="group-header">
+          <h2>SCIZ Group</h2>
+          {renderHeaderActions()}
+        </div>
+        <p>No starred trolls in the current group data.</p>
+        <button type="button" onClick={showAllTrolls} className="btn btn-primary">
+          Show all trolls
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="group-page">
       <div className="group-header">
         <h2>SCIZ Group</h2>
-        <button
-          onClick={fetchGroupTrolls}
-          className="btn-refresh-icon"
-          aria-label="Refresh"
-          title="Refresh"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="23 4 23 10 17 10"></polyline>
-            <polyline points="1 20 1 14 7 14"></polyline>
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-          </svg>
-        </button>
+        {renderHeaderActions()}
       </div>
 
       <div className="group-container">
@@ -349,6 +462,9 @@ const ScizGroup = () => {
             <table className="group-table">
               <thead>
                 <tr>
+                  <th className="bt-star-col" scope="col" aria-label="Favourite">
+                    ★
+                  </th>
                   {sortedKeys.map((key) => (
                     <th
                       key={key}
@@ -363,7 +479,7 @@ const ScizGroup = () => {
                 </tr>
               </thead>
               <tbody>
-                {trolls.map((troll, index) => {
+                {displayTrolls.map((troll, index) => {
                   const pvPercentage = getPVPercentage(troll);
                   
                   // Determine Troll name box color based on PV percentage
@@ -386,7 +502,8 @@ const ScizGroup = () => {
                   const isPA6 = paValue === 6;
                   
                   return (
-                    <tr key={troll.id || index}>
+                    <tr key={troll.id ?? index}>
+                      <td className="bt-star-col">{renderStarButton(troll)}</td>
                       {sortedKeys.map((key) => {
                         const isTrollColumn = key === 'Tröll';
                         const isPAColumn = key === 'PA';
@@ -427,7 +544,7 @@ const ScizGroup = () => {
 
         {/* MOBILE CARDS (Hidden on desktop) */}
         <div className="cards-view">
-          {trolls.map((troll, index) => {
+          {displayTrolls.map((troll, index) => {
             const pvPercentage = getPVPercentage(troll);
             let nameBoxClass = '';
             if (pvPercentage !== null) {
@@ -444,19 +561,26 @@ const ScizGroup = () => {
             const paValue = troll.pa != null ? Number(troll.pa) : null;
             const isPA6 = paValue === 6;
 
-            const isExpanded = expandedCardIndices.has(index);
+            const cardId = String(troll.id ?? index);
+            const isExpanded = expandedCardIds.has(cardId);
 
             return (
-              <div key={troll.id || index} className={`group-troll-card ${isExpanded ? 'group-troll-card-expanded' : ''}`}>
+              <div key={cardId} className={`group-troll-card ${isExpanded ? 'group-troll-card-expanded' : ''}`}>
                 <div
                   className="card-header group-card-header-tappable"
-                  onClick={() => toggleCardExpanded(index)}
+                  onClick={() => toggleCardExpanded(cardId)}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCardExpanded(index); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      toggleCardExpanded(cardId);
+                    }
+                  }}
                   aria-expanded={isExpanded}
                   aria-label={isExpanded ? 'Replier les détails' : 'Déplier les détails'}
                 >
+                  {renderStarButton(troll, 'bt-star-btn-card')}
                   <span className={nameBoxClass}>{troll.id ?? '-'}</span>
                   {troll.caracs ? (
                     <button
@@ -505,7 +629,7 @@ const ScizGroup = () => {
           >
             <div className="tooltip-header">
               <span>{tooltip.title || 'Caracs'}</span>
-              <button className="tooltip-close" onClick={handleCloseTooltip}>×</button>
+              <button type="button" className="tooltip-close" onClick={handleCloseTooltip}>×</button>
             </div>
             <div className="tooltip-content">
               {tooltip.content.split('\n').map((line, index) => (
