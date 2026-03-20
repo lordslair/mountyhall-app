@@ -1,9 +1,11 @@
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import User
+from auth import compute_bt_password_hash
 import requests
 import logging
 from datetime import datetime, timedelta
+from urllib.parse import quote
 
 group_bp = Blueprint('group', __name__, url_prefix='/group')
 logger = logging.getLogger(__name__)
@@ -79,8 +81,60 @@ def get_sciz_group_trolls():
 @group_bp.route('/bt', methods=['GET'])
 @jwt_required()
 def get_bt_group():
-    """Placeholder for BT group integration."""
-    return jsonify({
-        'status': 'stub',
-        'message': 'BT group is not implemented yet.',
-    }), 200
+    """Fetch BT group JSON from Raistlin mz_json with 60-second caching (independent from SCIZ)."""
+    try:
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        bt_system = (user.bt_system or '').strip()
+        bt_login = (user.bt_login or '').strip()
+        bt_hash = user.bt_hash
+        if not bt_hash and user.bt_password:
+            bt_hash = compute_bt_password_hash(user.bt_password)
+
+        if not bt_system or not bt_login or not bt_hash:
+            return jsonify({
+                'error': (
+                    'Bricol\'Trolls (BT) is not fully configured. '
+                    'Set Nom du système, Compte, and Password in your profile.'
+                ),
+            }), 400
+
+        cached_data = get_cached_data(user_id, 'bt')
+        if cached_data is not None:
+            logger.info(f"Returning cached BT group data for user {user_id}")
+            return jsonify(cached_data), 200
+
+        path_system = quote(bt_system, safe='')
+        url = f'https://it.mh.raistlin.fr/{path_system}/mz_json.php'
+        params = {
+            'login': bt_login.upper(),
+            'password': bt_hash,
+        }
+
+        logger.info(f"Fetching BT group data for user {user_id} (system={bt_system!r})")
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+
+            try:
+                data = response.json()
+            except ValueError:
+                logger.error('BT mz_json response is not valid JSON')
+                return jsonify({'error': 'Invalid response from BT service (not JSON).'}), 502
+
+            set_cached_data(user_id, data, 'bt')
+            logger.info(f"Successfully fetched and cached BT group data for user {user_id}")
+            logger.debug(f"BT group data: {data}")
+            return jsonify(data), 200
+
+        except requests.RequestException as e:
+            logger.error(f"Failed to fetch BT group data: {str(e)}")
+            return jsonify({'error': f'Failed to fetch BT group data: {str(e)}'}), 500
+
+    except Exception as e:
+        logger.error(f"Error fetching BT group: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Failed to fetch BT group', 'details': str(e)}), 500

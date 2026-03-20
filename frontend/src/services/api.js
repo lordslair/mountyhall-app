@@ -142,7 +142,7 @@ export const api = {
     });
   },
 
-  // Group — BT (stub)
+  // Group — BT (Bricol'Trolls mz_json via backend)
   getBtGroup: async () => {
     return apiRequest('/group/bt', {
       method: 'GET',
