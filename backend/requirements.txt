@@ -4,6 +4,6 @@ Flask-SQLAlchemy==3.1.1
 Flask-CORS==4.0.0
 bcrypt==4.1.2
 python-dotenv==1.0.0
-gunicorn==21.2.0
+gunicorn==25.1.0
 requests==2.31.0
 beautifulsoup4==4.12.2
