@@ -47,7 +47,7 @@ jobs:
       - name: Build 🏗️ & Push to Docker Hub 🚀
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./backend
           platforms: linux/amd64,linux/arm64
           file: ./backend/Dockerfile
           push: true
