@@ -6,7 +6,7 @@ import requests
 import logging
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 from typing import Optional, Tuple
 
@@ -81,7 +81,7 @@ def search_monster():
         if existing_monster:
             # Update existing monster
             existing_monster.mob_name_full = mob_name_full
-            existing_monster.updated_at = datetime.utcnow()
+            existing_monster.updated_at = datetime.now(timezone.utc)
             db.session.commit()
             logger.info(f"Updated existing monster mob_id={mob_id} for user_id={user_id}")
             return jsonify({
@@ -137,7 +137,7 @@ def fetch_mz_data(mob_id):
             mv_response.raise_for_status()
             if is_monster_dead(mv_response.text):
                 monster.is_dead = True
-                monster.updated_at = datetime.utcnow()
+                monster.updated_at = datetime.now(timezone.utc)
                 db.session.commit()
                 logger.info(f"Monster mob_id={mob_id} flagged as dead (n'existe pas ou a été tué)")
                 return jsonify({
@@ -184,7 +184,7 @@ def fetch_mz_data(mob_id):
             # Store mob_json as JSON string in database, clear dead flag if resurrected
             monster.mob_json = json.dumps(mob_json, ensure_ascii=False)
             monster.is_dead = False
-            monster.updated_at = datetime.utcnow()
+            monster.updated_at = datetime.now(timezone.utc)
             db.session.commit()
             
             logger.info(f"Successfully fetched and stored MZ data for mob_id={mob_id}, user_id={user_id}")

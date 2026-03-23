@@ -1,6 +1,11 @@
 from database import db
-from datetime import datetime
+from datetime import datetime, timezone
 import bcrypt
+
+
+def utc_now():
+    """Timezone-aware UTC for DB defaults (replaces deprecated datetime.utcnow)."""
+    return datetime.now(timezone.utc)
 
 class User(db.Model):
     """User model for authentication and profile management."""
@@ -17,8 +22,8 @@ class User(db.Model):
     bt_password = db.Column(db.String(255), nullable=True)
     bt_hash = db.Column(db.String(32), nullable=True)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
+
     def set_password(self, password: str):
         """Hash and set the user's password."""
         self.password_hash = bcrypt.hashpw(
@@ -59,8 +64,8 @@ class Monster(db.Model):
     mob_name_full = db.Column(db.String(255), nullable=True)
     mob_json = db.Column(db.Text, nullable=True)  # JSON data from MZ API stored as text
     is_dead = db.Column(db.Boolean, default=False, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now, nullable=False)
     
     # Relationship to User
     user = db.relationship('User', backref=db.backref('monsters', lazy=True))

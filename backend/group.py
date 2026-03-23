@@ -5,7 +5,7 @@ from database import db
 from auth import compute_bt_password_hash
 import requests
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 
 group_bp = Blueprint('group', __name__, url_prefix='/group')
@@ -22,7 +22,7 @@ def get_cached_data(user_id, namespace='sciz'):
     key = _cache_key(user_id, namespace)
     if key in _group_cache:
         cache_entry = _group_cache[key]
-        if datetime.utcnow() - cache_entry['timestamp'] < timedelta(seconds=60):
+        if datetime.now(timezone.utc) - cache_entry['timestamp'] < timedelta(seconds=60):
             return cache_entry['data']
         del _group_cache[key]
     return None
@@ -32,7 +32,7 @@ def set_cached_data(user_id, data, namespace='sciz'):
     key = _cache_key(user_id, namespace)
     _group_cache[key] = {
         'data': data,
-        'timestamp': datetime.utcnow()
+        'timestamp': datetime.now(timezone.utc)
     }
 
 @group_bp.route('/sciz/trolls', methods=['GET'])
