@@ -42,12 +42,12 @@ def search_monster():
     """Search for a monster by ID and fetch its name from MountyHall."""
     try:
         user_id = int(get_jwt_identity())
-        user = User.query.get(user_id)
-        
+        user = db.session.get(User, user_id)
+
         if not user:
             return jsonify({'error': 'User not found'}), 404
-        
-        data = request.get_json()
+
+        data = request.get_json(force=True, silent=True)
         if not data:
             return jsonify({'error': 'No data provided'}), 400
         
@@ -116,7 +116,7 @@ def fetch_mz_data(mob_id):
     """Fetch MZ API data for a monster and store it."""
     try:
         user_id = int(get_jwt_identity())
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         
         if not user:
             return jsonify({'error': 'User not found'}), 404
@@ -218,7 +218,7 @@ def get_monster_events(mob_id):
     """Fetch monster events from SCIZ API (last 48 hours)."""
     try:
         user_id = int(get_jwt_identity())
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
 
         if not user:
             return jsonify({'error': 'User not found'}), 404
@@ -269,7 +269,7 @@ def get_monsters():
     """Get all monsters for the current user."""
     try:
         user_id = int(get_jwt_identity())
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         
         if not user:
             return jsonify({'error': 'User not found'}), 404
@@ -301,7 +301,7 @@ def delete_monster(mob_id):
     """Delete a single monster for the current user."""
     try:
         user_id = int(get_jwt_identity())
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         
         if not user:
             return jsonify({'error': 'User not found'}), 404
@@ -333,7 +333,7 @@ def purge_monsters():
     """Delete all monsters for the current user."""
     try:
         user_id = int(get_jwt_identity())
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         
         if not user:
             return jsonify({'error': 'User not found'}), 404

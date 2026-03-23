@@ -12,7 +12,7 @@ def get_metrics():
     """Get admin metrics. Requires JWT and is_admin=True."""
     try:
         user_id = int(get_jwt_identity())
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
 
         if not user:
             return jsonify({'error': 'User not found'}), 404

@@ -13,6 +13,11 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 logger = logging.getLogger(__name__)
 
 
+def _request_json():
+    """Parse JSON body; None when missing, empty, non-JSON, or wrong Content-Type (no exception)."""
+    return request.get_json(force=True, silent=True)
+
+
 def compute_bt_password_hash(password: str):
     """MD5 hex of UTF-8 uppercase password (Bricol'Trolls convention)."""
     if not password:
@@ -35,11 +40,11 @@ def validate_password(password: str) -> tuple[bool, str]:
 def register():
     """Register a new user."""
     try:
-        data = request.get_json()
-        
+        data = _request_json()
+
         if not data:
             return jsonify({'error': 'No data provided'}), 400
-        
+
         email = data.get('email', '').strip().lower()
         password = data.get('password', '')
         
@@ -79,8 +84,8 @@ def login():
     """Login user and return JWT token."""
     try:
         logger.info("Login attempt started")
-        data = request.get_json()
-        
+        data = _request_json()
+
         if not data:
             logger.warning("Login failed: No data provided in request")
             return jsonify({'error': 'No data provided'}), 400
@@ -139,13 +144,13 @@ def get_profile():
     """Get user profile."""
     try:
         user_id = int(get_jwt_identity())
-        user = User.query.get(user_id)
-        
+        user = db.session.get(User, user_id)
+
         if not user:
             return jsonify({'error': 'User not found'}), 404
-        
+
         return jsonify(user.to_dict()), 200
-    
+
     except Exception as e:
         return jsonify({'error': 'Failed to retrieve profile', 'details': str(e)}), 500
 
@@ -185,13 +190,13 @@ def update_profile():
     """Update user profile (troll_id, sciz_token, BT credentials). troll_name is auto-fetched when troll_id changes."""
     try:
         user_id = int(get_jwt_identity())
-        user = User.query.get(user_id)
-        
+        user = db.session.get(User, user_id)
+
         if not user:
             return jsonify({'error': 'User not found'}), 404
-        
-        data = request.get_json()
-        
+
+        data = _request_json()
+
         if not data:
             return jsonify({'error': 'No data provided'}), 400
         
@@ -258,16 +263,16 @@ def update_profile():
 def fetch_troll_name():
     """Fetch troll name from MountyHall website based on troll ID."""
     try:
-        data = request.get_json()
-        
+        data = _request_json()
+
         if not data:
             return jsonify({'error': 'No data provided'}), 400
-        
+
         troll_id = data.get('troll_id', '').strip()
-        
+
         if not troll_id:
             return jsonify({'error': 'Troll ID is required'}), 400
-        
+
         # Fetch the page from MountyHall
         url = f'https://games.mountyhall.com/mountyhall/View/PJView.php?ai_IDPJ={troll_id}'
         

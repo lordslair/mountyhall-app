@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import User
+from database import db
 from auth import compute_bt_password_hash
 import requests
 import logging
@@ -40,7 +41,7 @@ def get_sciz_group_trolls():
     """Fetch group trolls from sciz.fr API with 60-second caching."""
     try:
         user_id = int(get_jwt_identity())
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
 
         if not user:
             return jsonify({'error': 'User not found'}), 404
@@ -84,7 +85,7 @@ def get_bt_group():
     """Fetch BT group JSON from Raistlin mz_json with 60-second caching (independent from SCIZ)."""
     try:
         user_id = int(get_jwt_identity())
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
 
         if not user:
             return jsonify({'error': 'User not found'}), 404
