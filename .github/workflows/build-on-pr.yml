@@ -28,7 +28,7 @@ jobs:
 
       # 2. Setup Buildx (The tool that manages multi-arch)
       - name: Set up Docker Buildx 🔧
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       # 3. Login to Docker Hub (Store your credentials in GitHub Secrets)
       - name: Log in to Docker Hub 🔐
