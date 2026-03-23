@@ -24,7 +24,7 @@ jobs:
 
       # 1. Setup QEMU (The translator for ARM64)
       - name: Set up QEMU 🔧
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       # 2. Setup Buildx (The tool that manages multi-arch)
       - name: Set up Docker Buildx 🔧
