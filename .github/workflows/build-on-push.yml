@@ -48,7 +48,7 @@ jobs:
 
       # 4. Build and Push
       - name: Build 🏗️ & Push to Docker Hub 🚀
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./${{ matrix.app }}
           platforms: linux/amd64,linux/arm64
