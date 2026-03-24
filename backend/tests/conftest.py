@@ -16,6 +16,9 @@ SCIZ_USER_EMAIL = "sciz@test.com"
 SCIZ_USER_PASSWORD = "scizpass"
 SCIZ_TOKEN = "fake-sciz-token-for-tests"
 
+# HS256 (default JWT alg) expects HMAC key >= 32 bytes (RFC 7518); shorter keys trigger PyJWT warnings.
+TEST_JWT_SECRET_KEY = "test-jwt-secret-key-must-be-at-least-32-bytes-long"
+
 
 @pytest.fixture(autouse=True)
 def clear_group_cache():
@@ -30,7 +33,7 @@ def app(tmp_path, monkeypatch):
     """Flask app with temp SQLite file and fixed JWT secret."""
     db_file = tmp_path / "test.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_file}")
-    monkeypatch.setenv("JWT_SECRET_KEY", "test-jwt-secret-for-pytest")
+    monkeypatch.setenv("JWT_SECRET_KEY", TEST_JWT_SECRET_KEY)
 
     # Import after env is patched so create_app picks up test config
     from app import create_app
