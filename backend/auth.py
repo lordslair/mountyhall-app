@@ -19,10 +19,11 @@ def _request_json():
 
 
 def compute_bt_password_hash(password: str):
-    """MD5 hex of UTF-8 uppercase password (Bricol'Trolls convention)."""
+    """MD5 hex of UTF-8 password (Bricol'Trolls convention)."""
     if not password:
         return None
-    return hashlib.md5(password.upper().encode('utf-8')).hexdigest()
+    clean_password = password.strip().encode('utf-8')
+    return hashlib.md5(clean_password).hexdigest()
 
 
 def validate_email(email: str) -> bool:
