@@ -759,6 +759,25 @@
   border: 1px solid #c9b8e8;
 }
 
+.bt-pa-eye-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Tight wrap so SVG isn’t baseline-shifted (was sitting a few px high vs PA chip). */
+.bt-pa-eye-cluster .bt-pa-eye-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.bt-pa-eye-cluster svg {
+  display: block;
+  flex-shrink: 0;
+}
+
 .group-table tbody tr:hover {
   background-color: #f9f9f9;
 }

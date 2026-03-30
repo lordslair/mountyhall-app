@@ -23,6 +23,50 @@ function filterStorageKey(userId) {
   return `mountyhapp_bt_starred_filter_${userId}`;
 }
 
+const BT_EYE_SVG_PROPS = {
+  xmlns: 'http://www.w3.org/2000/svg',
+  width: 18,
+  height: 18,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+};
+
+function BtPaEyeStriked() {
+  return (
+    <svg {...BT_EYE_SVG_PROPS} aria-hidden="true">
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+      <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" />
+      <line x1="2" y1="22" x2="22" y2="2" />
+    </svg>
+  );
+}
+
+/** Striked eye next to PA only when camouflé (yellow) or invisible (red). If both flags, invisible wins. */
+function BtPaVisibilityEye({ troll }) {
+  const invisible = Boolean(troll.invisible);
+  const camoufle = Boolean(troll.camoufle);
+
+  if (invisible) {
+    return (
+      <span className="name-box-red bt-pa-eye-icon-wrap" aria-label="Invisible">
+        <BtPaEyeStriked />
+      </span>
+    );
+  }
+  if (camoufle) {
+    return (
+      <span className="name-box-yellow bt-pa-eye-icon-wrap" aria-label="Camouflé">
+        <BtPaEyeStriked />
+      </span>
+    );
+  }
+  return null;
+}
+
 const BtGroup = () => {
   const { user } = useAuth();
   const [trolls, setTrolls] = useState([]);
@@ -488,8 +532,11 @@ const BtGroup = () => {
                                 <span className={nameBoxClass}>{getCellValue(troll, key)}</span>
                               )
                             ) : isPAColumn ? (
-                              <span className={isPA6 ? 'name-box-green' : 'name-box-gray'}>
-                                {getCellValue(troll, key)}
+                              <span className="bt-pa-eye-cluster">
+                                <BtPaVisibilityEye troll={troll} />
+                                <span className={isPA6 ? 'name-box-green' : 'name-box-gray'}>
+                                  {getCellValue(troll, key)}
+                                </span>
                               </span>
                             ) : (
                               getCellValue(troll, key)
@@ -551,9 +598,12 @@ const BtGroup = () => {
                   ) : (
                     <span className="group-troll-name">{getCellValue(troll, 'Tröll')}</span>
                   )}
-                  <span className={`group-card-pa ${isPA6 ? 'name-box-green' : 'name-box-gray'}`}>
-                    {getCellValue(troll, 'PA')}
-                  </span>
+                  <div className="group-card-pa bt-pa-eye-cluster">
+                    <BtPaVisibilityEye troll={troll} />
+                    <span className={isPA6 ? 'name-box-green' : 'name-box-gray'}>
+                      {getCellValue(troll, 'PA')}
+                    </span>
+                  </div>
                 </div>
                 <div className="card-body">
                   {sortedKeys.filter((k) => k !== 'Tröll' && k !== 'PA').map((key) => (
