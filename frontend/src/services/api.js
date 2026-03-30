@@ -149,6 +149,13 @@ export const api = {
     });
   },
 
+  getBtBonusMalus: async (trollIds) => {
+    return apiRequest('/group/bt/bonus-malus', {
+      method: 'POST',
+      body: JSON.stringify({ troll_ids: trollIds }),
+    });
+  },
+
   // Monsters
   searchMonster: async (mob_id) => {
     return apiRequest('/monsters/search', {

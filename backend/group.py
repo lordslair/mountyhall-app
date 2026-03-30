@@ -1,12 +1,16 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import User
+from bs4 import BeautifulSoup
+from models import User, BtProfile, utc_now
 from database import db
 from auth import compute_bt_password_hash
 import requests
 import logging
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
+
+# Serve profil HTML from bt_profiles without re-fetching Raistlin if younger than this (see post_bt_bonus_malus).
+BT_PROFIL_CACHE_TTL = timedelta(seconds=120)
 
 group_bp = Blueprint('group', __name__, url_prefix='/group')
 logger = logging.getLogger(__name__)
@@ -139,3 +143,192 @@ def get_bt_group():
     except Exception as e:
         logger.error(f"Error fetching BT group: {str(e)}", exc_info=True)
         return jsonify({'error': 'Failed to fetch BT group', 'details': str(e)}), 500
+
+
+def parse_bonus_malus(html: str):
+    """Extract Bonus Malus fieldset title and list items from profil HTML. Returns dict or None."""
+    if not html or not html.strip():
+        return None
+    soup = BeautifulSoup(html, 'html.parser')
+    for fs in soup.find_all('fieldset'):
+        leg = fs.find('legend')
+        if not leg:
+            continue
+        if 'Bonus Malus' not in leg.get_text():
+            continue
+        leg_copy = BeautifulSoup(str(leg), 'html.parser').find('legend')
+        if leg_copy:
+            for a in leg_copy.find_all('a'):
+                a.decompose()
+            title = leg_copy.get_text(' ', strip=True)
+        else:
+            title = leg.get_text(' ', strip=True)
+        items = []
+        ul = fs.find('ul')
+        if ul:
+            for li in ul.find_all('li'):
+                t = li.get_text(' ', strip=True)
+                if t:
+                    items.append(t)
+        else:
+            for li in fs.find_all('li'):
+                t = li.get_text(' ', strip=True)
+                if t:
+                    items.append(t)
+        return {'title': title, 'items': items}
+    return None
+
+
+def _upsert_bt_profile(user_id: int, troll_id_str: str, html: str):
+    now = utc_now()
+    row = db.session.get(BtProfile, (user_id, troll_id_str))
+    if row:
+        row.html_profile = html
+        row.updated_at = now
+    else:
+        db.session.add(
+            BtProfile(
+                user_id=user_id,
+                troll_id=troll_id_str,
+                html_profile=html,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+
+def _bt_profil_cache_fresh(row):
+    """True if stored HTML was written within BT_PROFIL_CACHE_TTL (same clock as other group caches)."""
+    if not row or not row.html_profile:
+        return False
+    ua = row.updated_at
+    if ua is None:
+        return False
+    if ua.tzinfo is None:
+        ua = ua.replace(tzinfo=timezone.utc)
+    cutoff = utc_now() - BT_PROFIL_CACHE_TTL
+    return ua >= cutoff
+
+
+@group_bp.route('/bt/bonus-malus', methods=['POST'])
+@jwt_required()
+def post_bt_bonus_malus():
+    """Return Bonus Malus from bt_profiles if updated within 120s; else login once and GET profil per stale id."""
+    try:
+        user_id = int(get_jwt_identity())
+        user = db.session.get(User, user_id)
+
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        body = request.get_json(silent=True) or {}
+        raw_ids = body.get('troll_ids')
+        if not isinstance(raw_ids, list):
+            return jsonify({'error': 'Request body must include troll_ids array.'}), 400
+
+        troll_ids = []
+        for x in raw_ids:
+            if x is None:
+                continue
+            s = str(x).strip()
+            if s:
+                troll_ids.append(s)
+
+        if not troll_ids:
+            return jsonify({'by_troll_id': {}, 'errors': {}}), 200
+
+        by_troll_id = {}
+        errors = {}
+        ids_to_fetch = []
+
+        for tid in troll_ids:
+            row = db.session.get(BtProfile, (user_id, tid))
+            if _bt_profil_cache_fresh(row):
+                parsed = parse_bonus_malus(row.html_profile)
+                if parsed:
+                    by_troll_id[tid] = parsed
+            else:
+                ids_to_fetch.append(tid)
+
+        if not ids_to_fetch:
+            logger.info(
+                f'BT bonus-malus: all {len(troll_ids)} troll(s) served from DB cache (≤{int(BT_PROFIL_CACHE_TTL.total_seconds())}s) for user {user_id}'
+            )
+            return jsonify({'by_troll_id': by_troll_id, 'errors': errors}), 200
+
+        bt_system = (user.bt_system or '').strip()
+        bt_login = (user.bt_login or '').strip()
+        bt_password = (user.bt_password or '').strip()
+
+        if not bt_system or not bt_login:
+            return jsonify({
+                'error': (
+                    'Bricol\'Trolls (BT) is not fully configured. '
+                    'Set Nom du système and Compte in your profile.'
+                ),
+            }), 400
+
+        if not bt_password:
+            return jsonify({
+                'error': (
+                    'BT plaintext password is required for Bonus Malus. '
+                    'Save your Bricol\'Trolls password in your profile.'
+                ),
+            }), 400
+
+        path_system = quote(bt_system, safe='')
+        base = f'https://it.mh.raistlin.fr/{path_system}'
+        login_url = f'{base}/login.php'
+
+        sess = requests.Session()
+        try:
+            login_resp = sess.post(
+                login_url,
+                data={
+                    'login': bt_login.upper(),
+                    'password': bt_password,
+                    'submit': 'Login',
+                },
+                timeout=15,
+                allow_redirects=True,
+            )
+            login_resp.raise_for_status()
+        except requests.RequestException as e:
+            logger.error(f'BT login.php request failed for user {user_id}: {e}')
+            return jsonify({'error': f'BT login failed: {e}'}), 502
+
+        if not sess.cookies.get('PHPSESSID'):
+            logger.error(f'BT login did not return PHPSESSID for user {user_id}')
+            return jsonify({'error': 'BT login did not return a session cookie.'}), 502
+
+        profil_url = f'{base}/profil.php'
+
+        for tid in ids_to_fetch:
+            try:
+                r = sess.get(profil_url, params={'id': tid}, timeout=15)
+                r.raise_for_status()
+            except requests.RequestException as e:
+                errors[tid] = str(e)
+                logger.warning(f'BT profil fetch failed for user {user_id} troll {tid}: {e}')
+                continue
+
+            html = r.text or ''
+            try:
+                _upsert_bt_profile(user_id, tid, html)
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                errors[tid] = f'Database error: {e}'
+                logger.error(f'bt_profiles upsert failed for user {user_id} troll {tid}: {e}')
+                continue
+
+            parsed = parse_bonus_malus(html)
+            if parsed:
+                by_troll_id[tid] = parsed
+
+        return jsonify({'by_troll_id': by_troll_id, 'errors': errors}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Error in BT bonus-malus: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Failed to fetch BT bonus malus', 'details': str(e)}), 500

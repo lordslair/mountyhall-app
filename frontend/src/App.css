@@ -1200,6 +1200,68 @@ html {
   word-break: break-word;
 }
 
+/* BT Group — Bonus Malus (mobile cards, after Position) */
+.bt-bonus-malus {
+  margin: 0.5rem 0 0.35rem;
+  padding: 0.35rem 0 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.bt-bonus-malus-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #444;
+  background: rgba(102, 126, 234, 0.08);
+  border: 1px solid rgba(102, 126, 234, 0.25);
+  border-radius: 6px;
+  padding: 0.45rem 0.5rem;
+  cursor: pointer;
+  line-height: 1.35;
+}
+
+.bt-bonus-malus-header:hover {
+  background: rgba(102, 126, 234, 0.12);
+}
+
+.bt-bonus-malus-title {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.bt-bonus-malus-chevron {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-top: 0.15rem;
+}
+
+.bt-bonus-malus-list {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+  color: #333;
+  line-height: 1.4;
+}
+
+.bt-bonus-malus-list li {
+  margin-bottom: 0.25rem;
+}
+
+.bt-bonus-malus-empty {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  color: #666;
+  font-style: italic;
+}
+
 /* Trash Button */
 .btn-trash {
   padding: 0.5rem;

@@ -75,6 +75,35 @@ def _migrate_users_add_bt_columns(db_instance):
             logger.warning(f"Migration {col_name} skipped or failed: {e}")
 
 
+def _migrate_bt_profiles_table(db_instance):
+    """Create bt_profiles table if missing (existing SQLite DBs without create_all)."""
+    from sqlalchemy import inspect, text
+    inspector = inspect(db_instance.engine)
+    if 'bt_profiles' in inspector.get_table_names():
+        return
+    try:
+        with db_instance.engine.connect() as conn:
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE bt_profiles (
+                        user_id INTEGER NOT NULL,
+                        troll_id VARCHAR(50) NOT NULL,
+                        html_profile TEXT NOT NULL,
+                        created_at DATETIME NOT NULL,
+                        updated_at DATETIME NOT NULL,
+                        PRIMARY KEY (user_id, troll_id),
+                        FOREIGN KEY(user_id) REFERENCES users (id)
+                    )
+                    """
+                )
+            )
+            conn.commit()
+        logger.info("Migration: created bt_profiles table")
+    except Exception as e:
+        logger.warning(f"Migration bt_profiles skipped or failed: {e}")
+
+
 def _migrate_monsters_add_is_dead(db_instance):
     """Add is_dead column to monsters table if it does not exist (for existing DBs)."""
     from sqlalchemy import inspect, text
@@ -133,6 +162,7 @@ def init_db(app: Flask):
             _migrate_users_add_is_admin(db)
             _migrate_users_add_bt_columns(db)
             _migrate_monsters_add_is_dead(db)
+            _migrate_bt_profiles_table(db)
             
             if db_exists:
                 logger.info("Database already exists. Tables verified/created.")

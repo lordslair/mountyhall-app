@@ -82,3 +82,17 @@ class Monster(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+
+
+class BtProfile(db.Model):
+    """Cached HTML from Raistlin profil.php per user and BT troll id."""
+
+    __tablename__ = 'bt_profiles'
+
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    troll_id = db.Column(db.String(50), primary_key=True)
+    html_profile = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+
+    user = db.relationship('User', backref=db.backref('bt_profiles', lazy=True))

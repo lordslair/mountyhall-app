@@ -75,6 +75,8 @@ const BtGroup = () => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [tooltip, setTooltip] = useState({ show: false, content: '', title: '', x: 0, y: 0 });
   const [expandedCardIds, setExpandedCardIds] = useState(() => new Set());
+  const [expandedBonusMalusCardIds, setExpandedBonusMalusCardIds] = useState(() => new Set());
+  const [bonusMalusById, setBonusMalusById] = useState({});
   const [starredIds, setStarredIds] = useState(() => new Set());
   const [showStarredOnly, setShowStarredOnly] = useState(false);
 
@@ -135,10 +137,35 @@ const BtGroup = () => {
     fetchGroupTrolls();
   }, []);
 
+  useEffect(() => {
+    if (loading || trolls.length === 0) {
+      if (trolls.length === 0) setBonusMalusById({});
+      return;
+    }
+    let cancelled = false;
+    const ids = trolls.map((t) => t.id).filter((id) => id != null && String(id).trim() !== '');
+    if (ids.length === 0) {
+      setBonusMalusById({});
+      return;
+    }
+    (async () => {
+      try {
+        const res = await api.getBtBonusMalus(ids);
+        if (!cancelled) setBonusMalusById(res.by_troll_id || {});
+      } catch {
+        if (!cancelled) setBonusMalusById({});
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [trolls, loading]);
+
   const fetchGroupTrolls = async () => {
     try {
       setLoading(true);
       setError('');
+      setBonusMalusById({});
       const data = await api.getBtGroup();
       setTrolls(normalizeBtTrolls(data));
     } catch (err) {
@@ -370,6 +397,15 @@ const BtGroup = () => {
       return next;
     });
   };
+
+  const toggleBonusMalusExpanded = useCallback((cardId) => {
+    setExpandedBonusMalusCardIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(cardId)) next.delete(cardId);
+      else next.add(cardId);
+      return next;
+    });
+  }, []);
 
   const renderStarButton = (troll, extraClass = '') => {
     const sid = String(troll.id);
@@ -606,12 +642,45 @@ const BtGroup = () => {
                   </div>
                 </div>
                 <div className="card-body">
-                  {sortedKeys.filter((k) => k !== 'Tröll' && k !== 'PA').map((key) => (
-                    <div key={key} className="stat-row stat-row-dense">
-                      <span className="stat-label">{key}</span>
-                      <span>{getCellValue(troll, key)}</span>
-                    </div>
-                  ))}
+                  {sortedKeys.filter((k) => k !== 'Tröll' && k !== 'PA').map((key) => {
+                    const bm = bonusMalusById[String(troll.id)];
+                    return (
+                      <div key={key}>
+                        <div className="stat-row stat-row-dense">
+                          <span className="stat-label">{key}</span>
+                          <span>{getCellValue(troll, key)}</span>
+                        </div>
+                        {key === 'Position' && bm && (
+                          <div className="bt-bonus-malus">
+                            <button
+                              type="button"
+                              className="bt-bonus-malus-header"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleBonusMalusExpanded(cardId);
+                              }}
+                              aria-expanded={expandedBonusMalusCardIds.has(cardId)}
+                            >
+                              <span className="bt-bonus-malus-title">{bm.title}</span>
+                              <span className="bt-bonus-malus-chevron" aria-hidden>
+                                {expandedBonusMalusCardIds.has(cardId) ? '▼' : '▶'}
+                              </span>
+                            </button>
+                            {expandedBonusMalusCardIds.has(cardId) && bm.items?.length > 0 && (
+                              <ul className="bt-bonus-malus-list">
+                                {bm.items.map((line, idx) => (
+                                  <li key={idx}>{line}</li>
+                                ))}
+                              </ul>
+                            )}
+                            {expandedBonusMalusCardIds.has(cardId) && (!bm.items || bm.items.length === 0) && (
+                              <p className="bt-bonus-malus-empty">Aucune entrée</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
