@@ -77,6 +77,7 @@ const BtGroup = () => {
   const [expandedCardIds, setExpandedCardIds] = useState(() => new Set());
   const [expandedBonusMalusCardIds, setExpandedBonusMalusCardIds] = useState(() => new Set());
   const [bonusMalusById, setBonusMalusById] = useState({});
+  const [bmRefreshModal, setBmRefreshModal] = useState(null);
   const [starredIds, setStarredIds] = useState(() => new Set());
   const [showStarredOnly, setShowStarredOnly] = useState(false);
 
@@ -407,6 +408,17 @@ const BtGroup = () => {
     });
   }, []);
 
+  const handleBmRefreshConfirm = useCallback(async () => {
+    if (!bmRefreshModal?.trollId) return;
+    try {
+      await api.refreshBtBonusMalus(bmRefreshModal.trollId);
+      setBmRefreshModal(null);
+      window.location.reload();
+    } catch (err) {
+      window.alert(err.message || 'Échec du rafraîchissement des bonus/malus.');
+    }
+  }, [bmRefreshModal]);
+
   const renderStarButton = (troll, extraClass = '') => {
     const sid = String(troll.id);
     const starred = starredIds.has(sid);
@@ -652,20 +664,59 @@ const BtGroup = () => {
                         </div>
                         {key === 'Position' && bm && (
                           <div className="bt-bonus-malus">
-                            <button
-                              type="button"
-                              className="bt-bonus-malus-header"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleBonusMalusExpanded(cardId);
-                              }}
+                            <div
+                              className="bt-bonus-malus-header-wrap"
+                              role="group"
                               aria-expanded={expandedBonusMalusCardIds.has(cardId)}
                             >
-                              <span className="bt-bonus-malus-title">{bm.title}</span>
-                              <span className="bt-bonus-malus-chevron" aria-hidden>
+                              <button
+                                type="button"
+                                className="bt-bonus-malus-header-title-part"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleBonusMalusExpanded(cardId);
+                                }}
+                              >
+                                <span className="bt-bonus-malus-title">{bm.title}</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="bt-bonus-malus-refresh"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setBmRefreshModal({ trollId: String(troll.id) });
+                                }}
+                                aria-label="Rafraîchir les bonus/malus"
+                                title="Rafraîchir les bonus/malus"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  aria-hidden
+                                >
+                                  <path d="M23 4v6h-6" />
+                                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                className="bt-bonus-malus-chevron-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleBonusMalusExpanded(cardId);
+                                }}
+                                aria-hidden
+                              >
                                 {expandedBonusMalusCardIds.has(cardId) ? '▼' : '▶'}
-                              </span>
-                            </button>
+                              </button>
+                            </div>
                             {expandedBonusMalusCardIds.has(cardId) && bm.items?.length > 0 && (
                               <ul className="bt-bonus-malus-list">
                                 {bm.items.map((line, idx) => (
@@ -709,6 +760,39 @@ const BtGroup = () => {
             </div>
           </div>
         </>
+      )}
+
+      {bmRefreshModal && (
+        <div
+          className="bt-bm-modal-overlay"
+          role="presentation"
+          onClick={() => setBmRefreshModal(null)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setBmRefreshModal(null);
+          }}
+        >
+          <div
+            className="bt-bm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bt-bm-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p id="bt-bm-modal-title">
+              Ce refresh des B/M va consommer du quota dans les appels SP de MH, qui sont limités.
+              {'\n'}
+              Êtes-vous sûrs ?
+            </p>
+            <div className="bt-bm-modal-actions">
+              <button type="button" onClick={() => setBmRefreshModal(null)}>
+                Non
+              </button>
+              <button type="button" className="bt-bm-modal-confirm" onClick={handleBmRefreshConfirm}>
+                Oui
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

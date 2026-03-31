@@ -6,6 +6,7 @@ from database import db
 from auth import compute_bt_password_hash
 import requests
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 
@@ -145,6 +146,15 @@ def get_bt_group():
         return jsonify({'error': 'Failed to fetch BT group', 'details': str(e)}), 500
 
 
+def shorten_bonus_malus_title(title: str) -> str:
+    """Abbreviate legend for UI: 'dernière maj' → 'MàJ', drop seconds from time (… HH:MM:SS → … HH:MM)."""
+    if not title:
+        return title
+    t = re.sub(r'dernière\s+maj\s*', 'MàJ ', title, count=1, flags=re.IGNORECASE)
+    t = re.sub(r'(\d{1,2}:\d{2}):\d{2}\b', r'\1', t)
+    return t
+
+
 def parse_bonus_malus(html: str):
     """Extract Bonus Malus fieldset title and list items from profil HTML. Returns dict or None."""
     if not html or not html.strip():
@@ -175,8 +185,67 @@ def parse_bonus_malus(html: str):
                 t = li.get_text(' ', strip=True)
                 if t:
                     items.append(t)
-        return {'title': title, 'items': items}
+        return {'title': shorten_bonus_malus_title(title), 'items': items}
     return None
+
+
+def _bt_ensure_raistlin_session(user, user_id):
+    """
+    Log in to Raistlin and return (session, base_url).
+    On configuration or login failure return (None, None, (response, status_code)).
+    """
+    bt_system = (user.bt_system or '').strip()
+    bt_login = (user.bt_login or '').strip()
+    bt_password = (user.bt_password or '').strip()
+
+    if not bt_system or not bt_login:
+        return None, None, (
+            jsonify({
+                'error': (
+                    'Bricol\'Trolls (BT) is not fully configured. '
+                    'Set Nom du système and Compte in your profile.'
+                ),
+            }),
+            400,
+        )
+
+    if not bt_password:
+        return None, None, (
+            jsonify({
+                'error': (
+                    'BT plaintext password is required for Bonus Malus. '
+                    'Save your Bricol\'Trolls password in your profile.'
+                ),
+            }),
+            400,
+        )
+
+    path_system = quote(bt_system, safe='')
+    base = f'https://it.mh.raistlin.fr/{path_system}'
+    login_url = f'{base}/login.php'
+
+    sess = requests.Session()
+    try:
+        login_resp = sess.post(
+            login_url,
+            data={
+                'login': bt_login.upper(),
+                'password': bt_password,
+                'submit': 'Login',
+            },
+            timeout=15,
+            allow_redirects=True,
+        )
+        login_resp.raise_for_status()
+    except requests.RequestException as e:
+        logger.error(f'BT login.php request failed for user {user_id}: {e}')
+        return None, None, (jsonify({'error': f'BT login failed: {e}'}), 502)
+
+    if not sess.cookies.get('PHPSESSID'):
+        logger.error(f'BT login did not return PHPSESSID for user {user_id}')
+        return None, None, (jsonify({'error': 'BT login did not return a session cookie.'}), 502)
+
+    return sess, base, None
 
 
 def _upsert_bt_profile(user_id: int, troll_id_str: str, html: str):
@@ -256,50 +325,10 @@ def post_bt_bonus_malus():
             )
             return jsonify({'by_troll_id': by_troll_id, 'errors': errors}), 200
 
-        bt_system = (user.bt_system or '').strip()
-        bt_login = (user.bt_login or '').strip()
-        bt_password = (user.bt_password or '').strip()
-
-        if not bt_system or not bt_login:
-            return jsonify({
-                'error': (
-                    'Bricol\'Trolls (BT) is not fully configured. '
-                    'Set Nom du système and Compte in your profile.'
-                ),
-            }), 400
-
-        if not bt_password:
-            return jsonify({
-                'error': (
-                    'BT plaintext password is required for Bonus Malus. '
-                    'Save your Bricol\'Trolls password in your profile.'
-                ),
-            }), 400
-
-        path_system = quote(bt_system, safe='')
-        base = f'https://it.mh.raistlin.fr/{path_system}'
-        login_url = f'{base}/login.php'
-
-        sess = requests.Session()
-        try:
-            login_resp = sess.post(
-                login_url,
-                data={
-                    'login': bt_login.upper(),
-                    'password': bt_password,
-                    'submit': 'Login',
-                },
-                timeout=15,
-                allow_redirects=True,
-            )
-            login_resp.raise_for_status()
-        except requests.RequestException as e:
-            logger.error(f'BT login.php request failed for user {user_id}: {e}')
-            return jsonify({'error': f'BT login failed: {e}'}), 502
-
-        if not sess.cookies.get('PHPSESSID'):
-            logger.error(f'BT login did not return PHPSESSID for user {user_id}')
-            return jsonify({'error': 'BT login did not return a session cookie.'}), 502
+        sess, base, login_err = _bt_ensure_raistlin_session(user, user_id)
+        if login_err is not None:
+            body, code = login_err
+            return body, code
 
         profil_url = f'{base}/profil.php'
 
@@ -332,3 +361,65 @@ def post_bt_bonus_malus():
         db.session.rollback()
         logger.error(f'Error in BT bonus-malus: {str(e)}', exc_info=True)
         return jsonify({'error': 'Failed to fetch BT bonus malus', 'details': str(e)}), 500
+
+
+@group_bp.route('/bt/bonus-malus/refresh', methods=['POST'])
+@jwt_required()
+def post_bt_bonus_malus_refresh():
+    """Force Raistlin update_bonusmalus then profil, upsert DB, return parsed Bonus Malus for one troll."""
+    try:
+        user_id = int(get_jwt_identity())
+        user = db.session.get(User, user_id)
+
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        body = request.get_json(silent=True) or {}
+        raw_id = body.get('troll_id')
+        if raw_id is None or str(raw_id).strip() == '':
+            return jsonify({'error': 'Request body must include troll_id.'}), 400
+
+        tid = str(raw_id).strip()
+
+        sess, base, login_err = _bt_ensure_raistlin_session(user, user_id)
+        if login_err is not None:
+            err_resp, err_code = login_err
+            return err_resp, err_code
+
+        update_url = f'{base}/update_bonusmalus.php'
+        profil_url = f'{base}/profil.php'
+
+        try:
+            u_resp = sess.get(update_url, params={'id': tid}, timeout=15)
+            u_resp.raise_for_status()
+        except requests.RequestException as e:
+            logger.warning(f'BT update_bonusmalus failed for user {user_id} troll {tid}: {e}')
+            return jsonify({'error': f'update_bonusmalus failed: {e}'}), 502
+
+        try:
+            r = sess.get(profil_url, params={'id': tid}, timeout=15)
+            r.raise_for_status()
+        except requests.RequestException as e:
+            logger.warning(f'BT profil fetch after refresh failed for user {user_id} troll {tid}: {e}')
+            return jsonify({'error': f'profil fetch failed: {e}'}), 502
+
+        html = r.text or ''
+        try:
+            _upsert_bt_profile(user_id, tid, html)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f'bt_profiles upsert failed after refresh for user {user_id} troll {tid}: {e}')
+            return jsonify({'error': f'Database error: {e}'}), 500
+
+        parsed = parse_bonus_malus(html)
+        by_troll_id = {}
+        if parsed:
+            by_troll_id[tid] = parsed
+
+        return jsonify({'by_troll_id': by_troll_id, 'errors': {}}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Error in BT bonus-malus refresh: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Failed to refresh BT bonus malus', 'details': str(e)}), 500

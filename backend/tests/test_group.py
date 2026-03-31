@@ -2,7 +2,7 @@ from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 from database import db
-from group import parse_bonus_malus
+from group import parse_bonus_malus, shorten_bonus_malus_title
 from models import BtProfile, User, utc_now
 from tests.conftest import (
     SCIZ_USER_EMAIL,
@@ -115,10 +115,21 @@ BONUS_MALUS_HTML = """
 """
 
 
+def test_shorten_bonus_malus_title():
+    assert "MàJ" in shorten_bonus_malus_title(
+        "Bonus Malus (dernière maj : 29/03/2026 19:27:54)"
+    )
+    assert ":54" not in shorten_bonus_malus_title(
+        "Bonus Malus (dernière maj : 29/03/2026 19:27:54)"
+    )
+
+
 def test_parse_bonus_malus_extracts_title_and_items():
     out = parse_bonus_malus(BONUS_MALUS_HTML)
     assert out is not None
-    assert "Bonus Malus (dernière maj : 29/03/2026 19:27:54)" in out["title"]
+    assert "MàJ" in out["title"]
+    assert "29/03/2026 19:27" in out["title"]
+    assert ":54" not in out["title"]
     assert "Mise à jour" not in out["title"]
     assert out["items"] == ["First malus line : 1 tours", "Second line"]
 
@@ -200,7 +211,7 @@ def test_bonus_malus_post_stores_html_and_parses(mock_session_class, seeded_clie
     assert resp.status_code == 200
     data = resp.get_json()
     assert "94284" in data["by_troll_id"]
-    assert "Bonus Malus" in data["by_troll_id"]["94284"]["title"]
+    assert "MàJ" in data["by_troll_id"]["94284"]["title"]
     assert data["by_troll_id"]["94284"]["items"]
 
     mock_sess.post.assert_called_once()
@@ -278,3 +289,36 @@ def test_bonus_malus_stale_cache_refetches_raistlin(mock_session_class, seeded_c
     assert resp.status_code == 200
     mock_session_class.assert_called_once()
     mock_sess.get.assert_called_once()
+
+
+@patch("group.requests.Session")
+def test_bonus_malus_refresh_update_then_profil(mock_session_class, seeded_client, seeded_app):
+    mock_sess = MagicMock()
+    mock_session_class.return_value = mock_sess
+    mock_sess.post.return_value = MagicMock(raise_for_status=MagicMock())
+    mock_sess.cookies.get.return_value = "sessid"
+    up = MagicMock()
+    up.raise_for_status = MagicMock()
+    pr = MagicMock()
+    pr.raise_for_status = MagicMock()
+    pr.text = BONUS_MALUS_HTML
+    mock_sess.get.side_effect = [up, pr]
+
+    headers = auth_header_from_login(seeded_client, SCIZ_USER_EMAIL, SCIZ_USER_PASSWORD)
+    resp = seeded_client.post(
+        "/group/bt/bonus-malus/refresh",
+        json={"troll_id": "94284"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "94284" in data["by_troll_id"]
+    assert mock_sess.get.call_count == 2
+    assert "update_bonusmalus" in mock_sess.get.call_args_list[0][0][0]
+    assert mock_sess.get.call_args_list[1][0][0].endswith("/profil.php")
+
+    with seeded_app.app_context():
+        uid = User.query.filter_by(email=SCIZ_USER_EMAIL).first().id
+        row = db.session.get(BtProfile, (uid, "94284"))
+        assert row is not None
+        assert row.html_profile == BONUS_MALUS_HTML
