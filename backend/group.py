@@ -248,16 +248,15 @@ def _bt_ensure_raistlin_session(user, user_id):
     return sess, base, None
 
 
-def _upsert_bt_profile(user_id: int, troll_id_str: str, html: str):
+def _upsert_bt_profile(troll_id_str: str, html: str):
     now = utc_now()
-    row = db.session.get(BtProfile, (user_id, troll_id_str))
+    row = db.session.get(BtProfile, troll_id_str)
     if row:
         row.html_profile = html
         row.updated_at = now
     else:
         db.session.add(
             BtProfile(
-                user_id=user_id,
                 troll_id=troll_id_str,
                 html_profile=html,
                 created_at=now,
@@ -311,7 +310,7 @@ def post_bt_bonus_malus():
         ids_to_fetch = []
 
         for tid in troll_ids:
-            row = db.session.get(BtProfile, (user_id, tid))
+            row = db.session.get(BtProfile, tid)
             if _bt_profil_cache_fresh(row):
                 parsed = parse_bonus_malus(row.html_profile)
                 if parsed:
@@ -327,8 +326,8 @@ def post_bt_bonus_malus():
 
         sess, base, login_err = _bt_ensure_raistlin_session(user, user_id)
         if login_err is not None:
-            body, code = login_err
-            return body, code
+            err_resp, err_code = login_err
+            return err_resp, err_code
 
         profil_url = f'{base}/profil.php'
 
@@ -343,7 +342,7 @@ def post_bt_bonus_malus():
 
             html = r.text or ''
             try:
-                _upsert_bt_profile(user_id, tid, html)
+                _upsert_bt_profile(tid, html)
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
@@ -405,7 +404,7 @@ def post_bt_bonus_malus_refresh():
 
         html = r.text or ''
         try:
-            _upsert_bt_profile(user_id, tid, html)
+            _upsert_bt_profile(tid, html)
             db.session.commit()
         except Exception as e:
             db.session.rollback()

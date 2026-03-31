@@ -75,33 +75,55 @@ def _migrate_users_add_bt_columns(db_instance):
             logger.warning(f"Migration {col_name} skipped or failed: {e}")
 
 
-def _migrate_bt_profiles_table(db_instance):
-    """Create bt_profiles table if missing (existing SQLite DBs without create_all)."""
+def _migrate_bt_profiles_to_troll_pk(db_instance):
+    """Drop composite (user_id, troll_id); single PK troll_id, one row per troll (latest updated_at wins)."""
     from sqlalchemy import inspect, text
     inspector = inspect(db_instance.engine)
-    if 'bt_profiles' in inspector.get_table_names():
+    if 'bt_profiles' not in inspector.get_table_names():
+        return
+    cols = {c['name'] for c in inspector.get_columns('bt_profiles')}
+    if 'user_id' not in cols:
         return
     try:
         with db_instance.engine.connect() as conn:
             conn.execute(
                 text(
                     """
-                    CREATE TABLE bt_profiles (
-                        user_id INTEGER NOT NULL,
-                        troll_id VARCHAR(50) NOT NULL,
+                    CREATE TABLE bt_profiles_new (
+                        troll_id VARCHAR(50) NOT NULL PRIMARY KEY,
                         html_profile TEXT NOT NULL,
                         created_at DATETIME NOT NULL,
-                        updated_at DATETIME NOT NULL,
-                        PRIMARY KEY (user_id, troll_id),
-                        FOREIGN KEY(user_id) REFERENCES users (id)
+                        updated_at DATETIME NOT NULL
                     )
                     """
                 )
             )
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO bt_profiles_new (troll_id, html_profile, created_at, updated_at)
+                    SELECT troll_id, html_profile, created_at, updated_at
+                    FROM (
+                        SELECT
+                            troll_id,
+                            html_profile,
+                            created_at,
+                            updated_at,
+                            ROW_NUMBER() OVER (
+                                PARTITION BY troll_id ORDER BY updated_at DESC, rowid DESC
+                            ) AS rn
+                        FROM bt_profiles
+                    ) AS ranked
+                    WHERE rn = 1
+                    """
+                )
+            )
+            conn.execute(text('DROP TABLE bt_profiles'))
+            conn.execute(text('ALTER TABLE bt_profiles_new RENAME TO bt_profiles'))
             conn.commit()
-        logger.info("Migration: created bt_profiles table")
+        logger.info('Migration: bt_profiles now uses PRIMARY KEY (troll_id) only')
     except Exception as e:
-        logger.warning(f"Migration bt_profiles skipped or failed: {e}")
+        logger.warning(f'Migration bt_profiles to troll PK skipped or failed: {e}')
 
 
 def _migrate_monsters_add_is_dead(db_instance):
@@ -162,7 +184,7 @@ def init_db(app: Flask):
             _migrate_users_add_is_admin(db)
             _migrate_users_add_bt_columns(db)
             _migrate_monsters_add_is_dead(db)
-            _migrate_bt_profiles_table(db)
+            _migrate_bt_profiles_to_troll_pk(db)
             
             if db_exists:
                 logger.info("Database already exists. Tables verified/created.")

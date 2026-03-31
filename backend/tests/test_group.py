@@ -221,8 +221,7 @@ def test_bonus_malus_post_stores_html_and_parses(mock_session_class, seeded_clie
     assert call_kw[1]["params"] == {"id": "94284"}
 
     with seeded_app.app_context():
-        uid = User.query.filter_by(email=SCIZ_USER_EMAIL).first().id
-        row = db.session.get(BtProfile, (uid, "94284"))
+        row = db.session.get(BtProfile, "94284")
         assert row is not None
         assert row.html_profile == BONUS_MALUS_HTML
         assert row.created_at is not None
@@ -232,10 +231,8 @@ def test_bonus_malus_post_stores_html_and_parses(mock_session_class, seeded_clie
 @patch("group.requests.Session")
 def test_bonus_malus_fresh_db_cache_skips_raistlin(mock_session_class, seeded_client, seeded_app):
     with seeded_app.app_context():
-        uid = User.query.filter_by(email=SCIZ_USER_EMAIL).first().id
         db.session.add(
             BtProfile(
-                user_id=uid,
                 troll_id="94284",
                 html_profile=BONUS_MALUS_HTML,
                 created_at=utc_now(),
@@ -259,10 +256,8 @@ def test_bonus_malus_fresh_db_cache_skips_raistlin(mock_session_class, seeded_cl
 @patch("group.requests.Session")
 def test_bonus_malus_stale_cache_refetches_raistlin(mock_session_class, seeded_client, seeded_app):
     with seeded_app.app_context():
-        uid = User.query.filter_by(email=SCIZ_USER_EMAIL).first().id
         db.session.add(
             BtProfile(
-                user_id=uid,
                 troll_id="94284",
                 html_profile=BONUS_MALUS_HTML,
                 created_at=utc_now() - timedelta(seconds=200),
@@ -318,7 +313,6 @@ def test_bonus_malus_refresh_update_then_profil(mock_session_class, seeded_clien
     assert mock_sess.get.call_args_list[1][0][0].endswith("/profil.php")
 
     with seeded_app.app_context():
-        uid = User.query.filter_by(email=SCIZ_USER_EMAIL).first().id
-        row = db.session.get(BtProfile, (uid, "94284"))
+        row = db.session.get(BtProfile, "94284")
         assert row is not None
         assert row.html_profile == BONUS_MALUS_HTML
