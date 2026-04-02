@@ -1207,6 +1207,13 @@ html {
   border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
+.bt-bonus-malus-loading {
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+  color: #666;
+  font-style: italic;
+}
+
 .bt-bonus-malus-header-wrap {
   display: flex;
   align-items: flex-start;

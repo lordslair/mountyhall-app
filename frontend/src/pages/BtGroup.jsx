@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -77,6 +77,9 @@ const BtGroup = () => {
   const [expandedCardIds, setExpandedCardIds] = useState(() => new Set());
   const [expandedBonusMalusCardIds, setExpandedBonusMalusCardIds] = useState(() => new Set());
   const [bonusMalusById, setBonusMalusById] = useState({});
+  const [bmLoadingIds, setBmLoadingIds] = useState(() => new Set());
+  const bmFetchedRef = useRef(new Set());
+  const bmInflightRef = useRef(new Set());
   const [bmRefreshModal, setBmRefreshModal] = useState(null);
   const [starredIds, setStarredIds] = useState(() => new Set());
   const [showStarredOnly, setShowStarredOnly] = useState(false);
@@ -138,35 +141,70 @@ const BtGroup = () => {
     fetchGroupTrolls();
   }, []);
 
+  /** Lazy-load Bonus/Malus only when a mobile card is expanded (refs avoid effect deps cancelling in-flight requests). */
   useEffect(() => {
-    if (loading || trolls.length === 0) {
-      if (trolls.length === 0) setBonusMalusById({});
-      return;
+    if (loading) return;
+    const idsToFetch = [];
+    for (const cardId of expandedCardIds) {
+      const troll = displayTrolls.find((t, i) => String(t.id ?? i) === cardId);
+      if (!troll || troll.id == null || String(troll.id).trim() === '') continue;
+      const tid = String(troll.id);
+      if (bmFetchedRef.current.has(tid) || bmInflightRef.current.has(tid)) continue;
+      bmInflightRef.current.add(tid);
+      idsToFetch.push(tid);
     }
+    if (idsToFetch.length === 0) return;
+
+    setBmLoadingIds((prev) => {
+      const next = new Set(prev);
+      idsToFetch.forEach((tid) => next.add(tid));
+      return next;
+    });
+
     let cancelled = false;
-    const ids = trolls.map((t) => t.id).filter((id) => id != null && String(id).trim() !== '');
-    if (ids.length === 0) {
-      setBonusMalusById({});
-      return;
-    }
     (async () => {
       try {
-        const res = await api.getBtBonusMalus(ids);
-        if (!cancelled) setBonusMalusById(res.by_troll_id || {});
+        const res = await api.getBtBonusMalus(idsToFetch);
+        if (cancelled) return;
+        setBonusMalusById((prev) => ({ ...prev, ...(res.by_troll_id || {}) }));
       } catch {
-        if (!cancelled) setBonusMalusById({});
+        /* no retry loop: mark done in finally */
+      } finally {
+        if (!cancelled) {
+          idsToFetch.forEach((tid) => {
+            bmInflightRef.current.delete(tid);
+            bmFetchedRef.current.add(tid);
+          });
+          setBmLoadingIds((prev) => {
+            const next = new Set(prev);
+            idsToFetch.forEach((tid) => next.delete(tid));
+            return next;
+          });
+        }
       }
     })();
+
     return () => {
       cancelled = true;
+      idsToFetch.forEach((tid) => {
+        bmInflightRef.current.delete(tid);
+      });
+      setBmLoadingIds((prev) => {
+        const next = new Set(prev);
+        idsToFetch.forEach((tid) => next.delete(tid));
+        return next;
+      });
     };
-  }, [trolls, loading]);
+  }, [expandedCardIds, loading, displayTrolls]);
 
   const fetchGroupTrolls = async () => {
     try {
       setLoading(true);
       setError('');
       setBonusMalusById({});
+      bmFetchedRef.current = new Set();
+      bmInflightRef.current = new Set();
+      setBmLoadingIds(new Set());
       const data = await api.getBtGroup();
       setTrolls(normalizeBtTrolls(data));
     } catch (err) {
@@ -655,13 +693,18 @@ const BtGroup = () => {
                 </div>
                 <div className="card-body">
                   {sortedKeys.filter((k) => k !== 'Tröll' && k !== 'PA').map((key) => {
-                    const bm = bonusMalusById[String(troll.id)];
+                    const tid = String(troll.id);
+                    const bm = bonusMalusById[tid];
+                    const bmLoading = bmLoadingIds.has(tid);
                     return (
                       <div key={key}>
                         <div className="stat-row stat-row-dense">
                           <span className="stat-label">{key}</span>
                           <span>{getCellValue(troll, key)}</span>
                         </div>
+                        {key === 'Position' && bmLoading && (
+                          <p className="bt-bonus-malus-loading">Chargement bonus/malus…</p>
+                        )}
                         {key === 'Position' && bm && (
                           <div className="bt-bonus-malus">
                             <div
