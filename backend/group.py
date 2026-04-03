@@ -9,6 +9,7 @@ import logging
 import re
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
+from encoding_utils import deep_fix_mojibake_utf8, json_utf8, text_utf8
 
 # Serve profil HTML from bt_profiles without re-fetching Raistlin if younger than this (see post_bt_bonus_malus).
 BT_PROFIL_CACHE_TTL = timedelta(seconds=120)
@@ -70,7 +71,7 @@ def get_sciz_group_trolls():
             response = requests.post(url, headers=headers, timeout=10)
             response.raise_for_status()
 
-            data = response.json()
+            data = json_utf8(response)
             set_cached_data(user_id, data, 'sciz')
 
             logger.info(f"Successfully fetched and cached SCIZ group data for user {user_id}")
@@ -127,7 +128,8 @@ def get_bt_group():
             response.raise_for_status()
 
             try:
-                data = response.json()
+                # Raistlin sometimes embeds UTF-8 misread as Latin-1 inside JSON strings.
+                data = deep_fix_mojibake_utf8(json_utf8(response))
             except ValueError:
                 logger.error('BT mz_json response is not valid JSON')
                 return jsonify({'error': 'Invalid response from BT service (not JSON).'}), 502
@@ -340,7 +342,7 @@ def post_bt_bonus_malus():
                 logger.warning(f'BT profil fetch failed for user {user_id} troll {tid}: {e}')
                 continue
 
-            html = r.text or ''
+            html = text_utf8(r)
             try:
                 _upsert_bt_profile(tid, html)
                 db.session.commit()
@@ -402,7 +404,7 @@ def post_bt_bonus_malus_refresh():
             logger.warning(f'BT profil fetch after refresh failed for user {user_id} troll {tid}: {e}')
             return jsonify({'error': f'profil fetch failed: {e}'}), 502
 
-        html = r.text or ''
+        html = text_utf8(r)
         try:
             _upsert_bt_profile(tid, html)
             db.session.commit()

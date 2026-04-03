@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
@@ -17,6 +18,7 @@ def _json_response(data):
     m = MagicMock()
     m.raise_for_status = MagicMock()
     m.json.return_value = data
+    m.content = json.dumps(data).encode('utf-8')
     return m
 
 
@@ -87,7 +89,7 @@ def test_bt_returns_json_success(mock_get, seeded_client):
 def test_bt_non_json_response_502(mock_get, seeded_client):
     mock_resp = MagicMock()
     mock_resp.raise_for_status = MagicMock()
-    mock_resp.json.side_effect = ValueError("not json")
+    mock_resp.content = b'not json'
     mock_get.return_value = mock_resp
 
     headers = auth_header_from_login(seeded_client, SCIZ_USER_EMAIL, SCIZ_USER_PASSWORD)
@@ -199,7 +201,7 @@ def test_bonus_malus_post_stores_html_and_parses(mock_session_class, seeded_clie
     mock_sess.cookies.get.return_value = "sessid"
     get_resp = MagicMock()
     get_resp.raise_for_status = MagicMock()
-    get_resp.text = BONUS_MALUS_HTML
+    get_resp.content = BONUS_MALUS_HTML.encode('utf-8')
     mock_sess.get.return_value = get_resp
 
     headers = auth_header_from_login(seeded_client, SCIZ_USER_EMAIL, SCIZ_USER_PASSWORD)
@@ -272,7 +274,7 @@ def test_bonus_malus_stale_cache_refetches_raistlin(mock_session_class, seeded_c
     mock_sess.cookies.get.return_value = "sessid"
     get_resp = MagicMock()
     get_resp.raise_for_status = MagicMock()
-    get_resp.text = BONUS_MALUS_HTML
+    get_resp.content = BONUS_MALUS_HTML.encode('utf-8')
     mock_sess.get.return_value = get_resp
 
     headers = auth_header_from_login(seeded_client, SCIZ_USER_EMAIL, SCIZ_USER_PASSWORD)
@@ -296,7 +298,7 @@ def test_bonus_malus_refresh_update_then_profil(mock_session_class, seeded_clien
     up.raise_for_status = MagicMock()
     pr = MagicMock()
     pr.raise_for_status = MagicMock()
-    pr.text = BONUS_MALUS_HTML
+    pr.content = BONUS_MALUS_HTML.encode('utf-8')
     mock_sess.get.side_effect = [up, pr]
 
     headers = auth_header_from_login(seeded_client, SCIZ_USER_EMAIL, SCIZ_USER_PASSWORD)
