@@ -10,6 +10,18 @@ vi.mock('../src/context/AuthContext.jsx', () => ({
 }))
 
 describe('Sidebar', () => {
+  it('shows Aide link', () => {
+    mockUseAuth.mockReturnValue({
+      user: { email: 'a@b.com', sciz_token: null, is_admin: false },
+    })
+    render(
+      <MemoryRouter initialEntries={['/profile']}>
+        <Sidebar isOpen onClose={() => {}} />
+      </MemoryRouter>
+    )
+    expect(screen.getByRole('link', { name: 'Aide' })).toBeInTheDocument()
+  })
+
   it('shows SCIZ Group link when user has sciz_token', () => {
     mockUseAuth.mockReturnValue({
       user: { email: 'a@b.com', sciz_token: 'tok', is_admin: false },

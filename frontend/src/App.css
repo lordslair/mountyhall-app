@@ -106,6 +106,7 @@
   justify-content: center;
   padding: 1rem;
   width: 100%;
+  min-width: 0; /* allow main column to shrink below wide content (e.g. help screenshots) */
   overflow-y: auto;
 }
 
@@ -277,6 +278,97 @@
   margin-top: 1.5rem;
   color: #666;
   font-size: 0.9rem;
+}
+
+/* PWA — prompt when a new service worker / precache is available */
+.pwa-update-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10001;
+  padding: 0.875rem 1rem;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1rem;
+}
+
+.pwa-update-banner-text {
+  flex: 1 1 220px;
+  max-width: 42rem;
+  font-size: 0.9rem;
+  color: #333;
+  line-height: 1.4;
+}
+
+.pwa-update-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.pwa-update-btn {
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+/* Help — subsection cards (aligned with profile-container look, better separation on mobile) */
+.help-page-article {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.help-page-article .help-section {
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 12px;
+  padding: 1.25rem 1.25rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  min-width: 0; /* let flex children shrink so wide <img> respects column width on mobile */
+  box-sizing: border-box;
+}
+
+.help-page-article .help-section img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0.75rem 0;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.help-page-article .help-section h2 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.help-page-article .help-section-intro h1 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 1.5rem;
+  text-align: center;
+  color: #333;
+}
+
+.help-page-article .help-section p:last-child,
+.help-page-article .help-section ul:last-child {
+  margin-bottom: 0;
+}
+
+@media (min-width: 768px) {
+  .help-page-article .help-section {
+    padding: 1.5rem 1.75rem;
+  }
 }
 
 /* Profile */

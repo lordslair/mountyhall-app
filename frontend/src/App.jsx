@@ -10,6 +10,8 @@ import ScizGroup from './pages/ScizGroup';
 import BtGroup from './pages/BtGroup';
 import Monsters from './pages/Monsters';
 import Admin from './pages/Admin';
+import Help from './pages/Help';
+import PwaUpdatePrompt from './components/PwaUpdatePrompt';
 import './App.css';
 
 function App() {
@@ -71,6 +73,7 @@ function App() {
           )}
           <main className="app-main">
             <Routes>
+              <Route path="/help" element={<Help />} />
               <Route path="/" element={<Home />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/group" element={<Navigate to="/group/sciz" replace />} />
@@ -84,13 +87,22 @@ function App() {
         </div>
       ) : (
         <main className="app-main">
-          {showRegister ? (
-            <RegisterForm onSwitchToLogin={() => setShowRegister(false)} />
-          ) : (
-            <LoginForm onSwitchToRegister={() => setShowRegister(true)} />
-          )}
+          <Routes>
+            <Route path="/help" element={<Help />} />
+            <Route
+              path="*"
+              element={
+                showRegister ? (
+                  <RegisterForm onSwitchToLogin={() => setShowRegister(false)} />
+                ) : (
+                  <LoginForm onSwitchToRegister={() => setShowRegister(true)} />
+                )
+              }
+            />
+          </Routes>
         </main>
       )}
+      <PwaUpdatePrompt />
     </div>
   );
 }

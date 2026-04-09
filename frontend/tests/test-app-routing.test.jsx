@@ -89,6 +89,37 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'Profile' })).toBeInTheDocument()
   })
 
+  it('renders help route when authenticated', () => {
+    mockUseAuth.mockReturnValue(
+      authState({
+        isAuthenticated: true,
+        user: authenticatedUser,
+      })
+    )
+    render(
+      <MemoryRouter initialEntries={['/help']}>
+        <App />
+      </MemoryRouter>
+    )
+    expect(screen.getByTestId('help-content')).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'MountyHapp — Aide' })
+    ).toBeInTheDocument()
+  })
+
+  it('renders help route when not authenticated', () => {
+    mockUseAuth.mockReturnValue(authState())
+    render(
+      <MemoryRouter initialEntries={['/help']}>
+        <App />
+      </MemoryRouter>
+    )
+    expect(screen.getByTestId('help-content')).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'MountyHapp — Aide' })
+    ).toBeInTheDocument()
+  })
+
   it('redirects unknown routes to home', () => {
     mockUseAuth.mockReturnValue(
       authState({
