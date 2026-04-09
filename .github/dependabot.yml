@@ -27,3 +27,11 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+
+# Grouping for cross updates
+groups:
+  vite-ecosystem:
+    patterns:
+      - "vite*"
+      - "@vitejs/*"
+      - "vitest*"
