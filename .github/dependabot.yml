@@ -2,15 +2,21 @@ version: 2
 updates:
   # 1. Python Backend (e.g., requirements.txt, pyproject.toml, or Pipfile)
   - package-ecosystem: "pip"
-    directory: "/backend" # Adjust if your python code is in a subfolder
+    directory: "/backend"
     schedule:
       interval: "weekly"
 
   # 2. Vite Frontend (package.json)
   - package-ecosystem: "npm"
-    directory: "/frontend" # Adjust to your frontend folder name
+    directory: "/frontend"
     schedule:
       interval: "weekly"
+    groups:
+      vite-ecosystem:
+        patterns:
+          - "vite*"
+          - "@vitejs/*"
+          - "vitest*"
 
   # 3. Docker (Dockerfile)
   - package-ecosystem: "docker"
@@ -27,11 +33,3 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-
-# Grouping for cross updates
-groups:
-  vite-ecosystem:
-    patterns:
-      - "vite*"
-      - "@vitejs/*"
-      - "vitest*"
