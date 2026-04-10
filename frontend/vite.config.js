@@ -34,7 +34,7 @@ export default defineConfig({
       manifest: {
         name: 'MountyHall App',
         short_name: 'MountyHall',
-        description: 'MountyHall authentication and profile management',
+        description: 'MountyHall Companion App',
         /** Align with index.html theme-color for install UI / splash */
         theme_color: '#667eea',
         icons: [

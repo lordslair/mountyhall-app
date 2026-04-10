@@ -1,7 +1,7 @@
 {
   "name": "MountyHall App",
   "short_name": "MountyHall",
-  "description": "MountyHall authentication and profile management",
+  "description": "MountyHall Companion App",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -1,6 +1,6 @@
 # MountyHall App
 
-A React PWA frontend and Flask backend API for MountyHall authentication and profile management.
+A React PWA frontend and Flask backend API for MountyHall Companion App.
 
 ## Features
 
