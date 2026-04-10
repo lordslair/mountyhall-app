@@ -9,7 +9,7 @@ JSON. Those can be repaired with :func:`fix_mojibake_utf8`.
 """
 
 import json
-from typing import Any
+from typing import Any, Optional
 
 
 def fix_mojibake_utf8(s: str) -> str:
@@ -39,5 +39,12 @@ def json_utf8(response) -> Any:
 
 
 def text_utf8(response) -> str:
-    """Decode HTML/text body as UTF-8."""
-    return response.content.decode('utf-8')
+    """Decode HTML/text using charset from ``Content-Type`` (via ``requests``), else UTF-8."""
+    blob = response.content
+
+    def _encoding_str(name: str) -> Optional[str]:
+        v = getattr(response, name, None)
+        return v if isinstance(v, str) and v else None
+
+    enc = _encoding_str("encoding") or _encoding_str("apparent_encoding") or "utf-8"
+    return blob.decode(enc)
