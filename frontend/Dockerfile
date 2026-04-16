@@ -1,5 +1,5 @@
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -27,6 +27,9 @@ RUN apk add --no-cache curl
 
 # Copy built assets from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+# nginx runs as non-root; ensure static files are world-readable (avoids 403 on new dirs e.g. public/images)
+RUN chmod -R a+rX /usr/share/nginx/html
 
 # Copy custom nginx configuration for SPA routing
 RUN echo 'server { \
