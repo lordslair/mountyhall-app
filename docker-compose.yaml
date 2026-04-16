@@ -1,15 +1,8 @@
 services:
 
   caddy:
-    image: caddy:latest
+    image: lordslair/caddy-ovh:2.11.2
     container_name: mountyhall-caddy
-    build:
-      context: ./caddy
-      dockerfile_inline: |
-        FROM caddy:builder AS builder
-        RUN xcaddy build --with github.com/caddy-dns/ovh
-        FROM caddy:latest
-        COPY --from=builder /usr/bin/caddy /usr/bin/caddy
     restart: unless-stopped
     ports:
       - "80:80"
