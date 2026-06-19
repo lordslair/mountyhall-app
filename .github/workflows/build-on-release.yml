@@ -18,7 +18,7 @@ jobs:
     
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # 1. Setup QEMU (The translator for ARM64)
       - name: Set up QEMU 🔧
