@@ -30,7 +30,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.2",
+    "@vitejs/plugin-react": "^6.0.3",
     "@vitest/coverage-v8": "^4.1.2",
     "autoprefixer": "^10.5.0",
     "eslint": "^10.5.0",
@@ -40,8 +40,8 @@
     "jsdom": "^29.1.1",
     "msw": "^2.14.6",
     "postcss": "^8.5.10",
-    "vite": "^8.0.16",
-    "vitest": "^4.1.9"
+    "vite": "^8.1.4",
+    "vitest": "^4.1.10"
   },
   "engines": {
     "node": ">=24.0.0"
