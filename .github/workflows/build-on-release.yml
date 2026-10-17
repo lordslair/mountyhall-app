@@ -54,6 +54,8 @@ jobs:
           context: ./${{ matrix.app }}
           platforms: linux/amd64,linux/arm64
           file: ./${{ matrix.app }}/Dockerfile
+          build-args: |
+            VITE_API_URL=${{ vars.VITE_API_URL }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
