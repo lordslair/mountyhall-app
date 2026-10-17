@@ -51,13 +51,14 @@ const apiRequest = async (endpoint, options = {}) => {
     console.log(`[API] Response status: ${response.status} for ${endpoint}`);
 
     if (!response.ok) {
+      // The body can only be consumed once: read it as text, then try to parse it
+      const text = await response.text();
       let errorData;
       try {
-        errorData = await response.json();
+        errorData = JSON.parse(text);
         console.error(`[API] Error response:`, errorData);
       } catch (e) {
         // Response is not JSON
-        const text = await response.text();
         console.error(`[API] Non-JSON error response:`, text);
         errorData = { error: text || `HTTP error! status: ${response.status}` };
       }
