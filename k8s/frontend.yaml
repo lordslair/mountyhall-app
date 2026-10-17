@@ -1,0 +1,67 @@
+#
+# kubectl create secret generic mountyhall-backend --from-literal=JWT_SECRET_KEY='...'
+# Needed to have the secrets safely in the Cluster
+# then: kubectl apply -f k8s/
+# 
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mountyhall-frontend
+  namespace: mountyhall
+  labels:
+    app: mountyhall-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mountyhall-frontend
+  template:
+    metadata:
+      labels:
+        app: mountyhall-frontend
+    spec:
+      containers:
+        - name: frontend
+          # VITE_API_URL is baked in at image build time (see frontend/Dockerfile)
+          image: lordslair/mountyhapp-frontend:ab0a841
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mountyhall-frontend
+  namespace: mountyhall
+  labels:
+    app: mountyhall-frontend
+spec:
+  selector:
+    app: mountyhall-frontend
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http

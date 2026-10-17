@@ -1,0 +1,105 @@
+#
+# kubectl -n mountyhall create secret generic mountyhall-backend --from-literal=JWT_SECRET_KEY='...'
+# Needed to have the secrets safely in the Cluster
+# then: kubectl apply -f k8s/
+# 
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mountyhall-backend-instance
+  namespace: mountyhall
+  labels:
+    app: mountyhall-backend
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mountyhall-backend
+  namespace: mountyhall
+  labels:
+    app: mountyhall-backend
+spec:
+  # SQLite on a RWO volume: single replica, and stop the old pod before starting the new one
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: mountyhall-backend
+  template:
+    metadata:
+      labels:
+        app: mountyhall-backend
+    spec:
+      securityContext:
+        # appuser (uid 1000) in the image must be able to write to the volume
+        fsGroup: 1000
+      containers:
+        - name: backend
+          image: lordslair/mountyhapp-backend:ab0a841
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 5000
+          env:
+            - name: FLASK_ENV
+              value: production
+            - name: LOG_LEVEL
+              value: INFO
+            - name: DATABASE_URL
+              value: sqlite:////app/instance/app.db
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mountyhall-backend
+                  key: JWT_SECRET_KEY
+          volumeMounts:
+            - name: instance
+              mountPath: /app/instance
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: instance
+          persistentVolumeClaim:
+            claimName: mountyhall-backend-instance
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mountyhall-backend
+  namespace: mountyhall
+  labels:
+    app: mountyhall-backend
+spec:
+  selector:
+    app: mountyhall-backend
+  ports:
+    - name: http
+      port: 5000
+      targetPort: http
